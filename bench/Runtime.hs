@@ -34,7 +34,6 @@ import qualified Numeric.Matrix as NM
 
 
 import qualified System.Random.MWC as Mwc
-import Control.Monad (replicateM)
 
 import qualified Criterion.Main as C
 
@@ -51,11 +50,6 @@ vectorGen :: IO (Vector Double)
 vectorGen =  do 
     gen <- Mwc.create
     Mwc.uniformVector gen (n*n)
-
-listGen :: IO [[Double]]
-listGen =  do 
-    gen <- Mwc.create
-    replicateM n . replicateM n . Mwc.uniform $ gen
 
 matrixDLA :: IO M.Matrix
 matrixDLA = do
@@ -88,22 +82,19 @@ mapH = H.cmap
 main :: IO ()
 main = do 
 
-    nestedList1 <- listGen
-    nestedList2 <- listGen
+    vDLA <- vectorGen
+    uDLA <- vectorGen
 
     let 
 
     --
-      vDLA = U.fromList $ take (n*n) $ [1 :: Double ..] :: Vector Double
-      uDLA = U.fromList $ take (n*n) $ [0 :: Double ..] :: Vector Double
-      subDLA = U.fromList $ take (n) $ [1 :: Double ..] :: Vector Double
-
+      subDLA = U.take n vDLA
       aDLA = M.Matrix n n vDLA
       bDLA = M.Matrix n n uDLA
     
     --
-      vList = U.toList vDLA :: [Double]
-      uList = U.toList uDLA :: [Double]
+      vList = U.toList vDLA
+      uList = U.toList uDLA
     
     --
       aH = (n H.>< n) vList
@@ -112,17 +103,14 @@ main = do
       subH = H.fromList . take n $ vList
 
     --
-      aNH = [1 ..] :: NH.Array V.Vector '[50, 50] Double
-      bNH = [0 ..] :: NH.Array V.Vector '[50, 50] Double
+      aNH = NP.fromList vList :: NH.Array V.Vector '[50, 50] Double
+      bNH = NP.fromList uList :: NH.Array V.Vector '[50, 50] Double
 
-      subNH = [1 ..] :: NH.Array V.Vector '[50] Double
+      subNH = NP.fromList . take n $ vList :: NH.Array V.Vector '[50] Double
 
     --
       aDMX = DMX.fromList n n vList
       bDMX = DMX.fromList n n uList
-
-      aNM = NM.fromList nestedList1
-      bNM = NM.fromList nestedList2
 
     C.defaultMain [ 
         C.bgroup "DLA" [ 
@@ -179,12 +167,5 @@ main = do
                                  C.bench "row" $ C.nf (DMX.getRow 1) aDMX,
                                  C.bench "column" $ C.nf (DMX.getCol 1) aDMX,
                                  C.bench "identity" $ C.nf identDMX n
-                                 ],
-        C.bgroup "Bed and breakfast" [ 
-                                 C.bench "multiplication" $ C.nf (NM.times aNM) bNM,
-                                 C.bench "transpose" $ C.nf NM.transpose aNM,
-                                 C.bench "row" $ C.nf (NM.row 1) aNM,
-                                 C.bench "column" $ C.nf (NM.col 1) aNM,
-                                 C.bench "identity" $ C.nf identNM n
                                  ]
                   ]

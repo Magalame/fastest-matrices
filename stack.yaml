@@ -39,7 +39,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps: 
 - bed-and-breakfast-0.5
-- numhask-array-0.3
+- numhask-array-0.3.0.1
 - dimensions-1.0.1.1
 - numhask-prelude-0.3.1
 - numhask-0.3.0.0

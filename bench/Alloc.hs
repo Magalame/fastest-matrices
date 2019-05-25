@@ -34,7 +34,6 @@ import qualified "matrix" Data.Matrix as DMX
 import qualified Numeric.Matrix as NM
 
 import qualified System.Random.MWC as Mwc
-import Control.Monad (replicateM)
 
 import qualified Weigh as W
 
@@ -52,10 +51,6 @@ vectorGen =  do
     gen <- Mwc.create
     Mwc.uniformVector gen (n*n)
 
-listGen :: IO [[Double]]
-listGen =  do 
-    gen <- Mwc.create
-    replicateM n . replicateM n . Mwc.uniform $ gen
 
 matrixDLA :: IO M.Matrix
 matrixDLA = do
@@ -88,9 +83,6 @@ mapH = H.cmap
 main :: IO ()
 main = do 
 
-    nestedList1 <- listGen
-    nestedList2 <- listGen
-
     let 
 
     --
@@ -122,9 +114,6 @@ main = do
       bDMX = DMX.fromList n n uList
     --
 
-      aNM = NM.fromList nestedList1
-      bNM = NM.fromList nestedList2
-
     W.mainWith (do 
                W.func "DLA - multiplication" (M.multiply aDLA) bDLA
                W.func "DLA - qr factorization" A.qr aDLA
@@ -153,10 +142,4 @@ main = do
                W.func "matrix - row" (DMX.getRow 1) aDMX
                W.func "matrix - column" (DMX.getCol 1) aDMX
                W.func "matrix - identity" identDMX n
-
-               W.func "BAB - multiplication" (NM.times aNM) bNM
-               W.func "BAB - transpose" NM.transpose aNM
-               W.func "BAB - row" (NM.row 1) aNM
-               W.func "BAB - column" (NM.col 1) aNM
-               W.func "BAB - identity" identNM n
                )
