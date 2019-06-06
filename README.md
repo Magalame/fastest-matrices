@@ -60,7 +60,6 @@ To run:
 | NumHask | 9.356 μs | 10.85 μs | 8.424 μs | 
 | Matrix | 2.267 μs | 58.81 μs | 355.8 μs | 
 
-
 #### Norm
 
 | Library | n = 10 | n = 50 | n = 100 |
@@ -68,6 +67,7 @@ To run:
 | DLA | 197.0 ns | 5.067 μs | 20.10 μs |
 | hmatrix | 89.56 ns | 101.4 ns | 181.7 ns |
 | NumHask | 12.90 μs | 12.64 μs | 12.72 μs |
+| Naive C | 350 ns | 12.65 us | 50.96 us |
 
 #### Row
 
