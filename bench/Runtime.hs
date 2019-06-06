@@ -38,7 +38,7 @@ import qualified System.Random.MWC as Mwc
 import qualified Criterion.Main as C
 
 n :: Int
-n = 50
+n = 500
 
 vectorGen :: IO (Vector Double)
 vectorGen =  do 

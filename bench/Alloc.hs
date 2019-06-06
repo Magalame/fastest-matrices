@@ -110,10 +110,10 @@ main = do
 
 
     W.mainWith (do 
-               W.func "DLA - multiplication" (M.multiply aDLA) bDLA
+               W.func "DLA - multiplication" (MF.multiply aDLA) bDLA
                W.func "DLA - qr factorization" A.qr aDLA
                W.func "DLA - transpose" M.transpose aDLA
-               W.func "DLA - norm" M.norm subDLA
+               W.func "DLA - norm" MF.norm subDLA
                W.func "DLA - row" (M.row  aDLA) 0
                W.func "DLA - column" (M.column  aDLA) 0
                W.func "DLA - identity" M.ident n
