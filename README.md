@@ -9,6 +9,7 @@ This project benchmarks the following libraries:
 instead of relying on hackage, the project's dependencies fetch the libraries directly from github (see `stack.yaml`).
 
 To run:
+
 (runtime)
 `stack build :bench-alloc && stack exec bench-alloc`
 
