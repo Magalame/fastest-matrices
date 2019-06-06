@@ -16,6 +16,8 @@ To run:
 (allocation)
 `stack build :bench-runtime && stack exec bench-runtime`
 
+The implementations of the "naive C" parts can be found in `/naive`. They were compiled with `-O3`
+
 ## Results
 
 ### Runtime
