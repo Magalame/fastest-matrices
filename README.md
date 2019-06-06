@@ -112,7 +112,7 @@ The implementations of the "naive C" parts can be found in `/naive`. They were c
 | --- | --- | --- | --- |
 | DLA | 976 | 20,176 | 80,176 |
 | hmatrix | 904 | 20,936 | 80,936|
-| NumHask | 179,093,816 | 179,093,816 | 179,093,816 |
+| NumHask | 1,691,432 | 179,093,816 | 1,400,273,872 |
 | Matrix | 18,160 | 392,288 | 1,544,056 |
 
 #### QR factorization
@@ -138,7 +138,7 @@ The implementations of the "naive C" parts can be found in `/naive`. They were c
 | --- | --- | --- | --- |
 | DLA | 16 | 16 | 16 |
 | hmatrix | 232 | 232 | 232 |
-| NumHask | 90,400 | 90,400 | 90,400 |
+| NumHask | 12,512 | 90,400 | 146,800|
 
 #### Row
 
@@ -155,7 +155,7 @@ The implementations of the "naive C" parts can be found in `/naive`. They were c
 | --- | --- | --- | --- | 
 | DLA | 160 | 480 | 880 |
 | hmatrix | 2,128 | 2,128 | 2,128 |
-| NumHask | 2,720 | 2,720 | 2,720 |
+| NumHask | 800 | 2,720 | 5,120 |
 | Matrix | 1,648 | 23,744  | 87,400 |
 
 #### Identity
