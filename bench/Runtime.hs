@@ -6,6 +6,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLists #-}
 
+
 module Main where
 
 
@@ -16,8 +17,8 @@ import qualified Data.Vector as V
 
 -- DLA
 import qualified Statistics.Matrix as M
-import           Statistics.Matrix (Matrix (..))
-import qualified Statistics.Matrix.Algorithms as A
+import qualified Statistics.Matrix.Fast as MF
+import qualified Statistics.Matrix.Fast.Algorithms as A
 
 -- hmatrix
 import qualified Numeric.LinearAlgebra as H
@@ -32,16 +33,9 @@ import qualified "matrix" Data.Matrix as DMX
 -- bed and breakfast
 import qualified Numeric.Matrix as NM
 
-
 import qualified System.Random.MWC as Mwc
 
 import qualified Criterion.Main as C
-
-import GHC.Generics (Generic)
-import Control.DeepSeq (NFData)
-
-deriving instance Generic Matrix
-deriving instance NFData Matrix
 
 n :: Int
 n = 50
@@ -114,15 +108,15 @@ main = do
 
     C.defaultMain [ 
         C.bgroup "DLA" [ 
-                         C.bench "multiplication" $ C.nf (M.multiply aDLA) bDLA,
-                         C.bench "repeated multiplication" $ C.nf (U.sum . (flip M.row) 1 . M.multiply bDLA . M.multiply aDLA . M.multiply aDLA ) bDLA,
-                         C.bench "multiplicationV" $ C.nf (M.multiplyV aDLA) subDLA,
+                         C.bench "multiplication" $ C.nf (MF.multiply aDLA) bDLA,
+                         C.bench "repeated multiplication" $ C.nf (U.sum . (flip M.row) 1 . MF.multiply bDLA . MF.multiply aDLA . MF.multiply aDLA ) bDLA,
+                         C.bench "multiplicationV" $ C.nf (MF.multiplyV aDLA) subDLA,
 
                          C.bench "qr factorization" $ C.nf A.qr aDLA,
 
                          C.bench "transpose" $ C.nf M.transpose aDLA,
 
-                         C.bench "norm" $ C.nf M.norm vDLA,
+                         C.bench "norm" $ C.nf MF.norm vDLA,
                          C.bench "row" $ C.nf (M.row  aDLA) 0,
                          C.bench "column" $ C.nf (M.column  aDLA) 0,
 

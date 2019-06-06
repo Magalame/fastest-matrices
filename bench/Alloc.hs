@@ -17,8 +17,8 @@ import qualified Data.Vector as V
 
 -- DLA
 import qualified Statistics.Matrix as M
-import           Statistics.Matrix (Matrix (..))
-import qualified Statistics.Matrix.Algorithms as A
+import qualified Statistics.Matrix.Fast as MF
+import qualified Statistics.Matrix.Fast.Algorithms as A
 
 -- hmatrix
 import qualified Numeric.LinearAlgebra as H
@@ -37,12 +37,6 @@ import qualified System.Random.MWC as Mwc
 
 import qualified Weigh as W
 
-import GHC.Generics (Generic)
-import Control.DeepSeq (NFData)
-
-deriving instance Generic Matrix
-deriving instance NFData Matrix
-
 n :: Int
 n = 50
 
@@ -50,7 +44,6 @@ vectorGen :: IO (Vector Double)
 vectorGen =  do 
     gen <- Mwc.create
     Mwc.uniformVector gen (n*n)
-
 
 matrixDLA :: IO M.Matrix
 matrixDLA = do
@@ -85,34 +78,36 @@ main = do
 
     let 
 
-    --
-      vDLA = U.fromList $ take (n*n) $ [1 :: Double ..] :: Vector Double
-      uDLA = U.fromList $ take (n*n) $ [0 :: Double ..] :: Vector Double
-      subDLA = U.fromList $ take (n) $ [1 :: Double ..] :: Vector Double
+    vDLA <- vectorGen
+    uDLA <- vectorGen
 
+    let 
+
+    --
+      subDLA = U.take n vDLA
       aDLA = M.Matrix n n vDLA
       bDLA = M.Matrix n n uDLA
     
     --
-      vList = U.toList vDLA :: [Double]
-      uList = U.toList uDLA :: [Double]
-      subList = U.toList subDLA :: [Double]
+      vList = U.toList vDLA
+      uList = U.toList uDLA
     
     --
       aH = (n H.>< n) vList
       bH = (n H.>< n) uList
 
-      subH = H.fromList subList
+      subH = H.fromList . take n $ vList
 
     --
-      aNH = [1 ..] :: NH.Array V.Vector '[50, 50] Double
-      bNH = [0 ..] :: NH.Array V.Vector '[50, 50] Double
-      subNH = [1 ..] :: NH.Array V.Vector '[50] Double
+      aNH = NP.fromList vList :: NH.Array V.Vector '[50, 50] Double
+      bNH = NP.fromList uList :: NH.Array V.Vector '[50, 50] Double
+
+      subNH = NP.fromList . take n $ vList :: NH.Array V.Vector '[50] Double
 
     --
       aDMX = DMX.fromList n n vList
       bDMX = DMX.fromList n n uList
-    --
+
 
     W.mainWith (do 
                W.func "DLA - multiplication" (M.multiply aDLA) bDLA

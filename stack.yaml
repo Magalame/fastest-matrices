@@ -38,12 +38,30 @@ packages:
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
 extra-deps: 
-- bed-and-breakfast-0.5
-- numhask-array-0.3.0.1
+- git: https://github.com/tonyday567/numhask.git
+  commit: 9e10bab5d1a2b01e202da669c5f0391a47b84f02
+  subdirs: 
+    - numhask
+    - numhask-prelude
+    - numhask-space
+    - numhask-array
+
+- git: https://github.com/DataHaskell/dh-core.git
+  commit: c61feb36f884aa3760740a0c47a774df92199f8b
+  subdirs: 
+    - dense-linear-algebra
+
+- git: https://github.com/scravy/bed-and-breakfast.git
+  commit: e900464394bb13edeb7a439ec758f059dc4712db
+
+- git: https://github.com/haskell-numerics/hmatrix.git
+  commit: 5e4bb9a51645dd26e4d506ea9aa78c60ccfa138a
+  subdirs:
+    - packages/base
+    
 - dimensions-1.0.1.1
-- numhask-prelude-0.3.1
-- numhask-0.3.0.0
-- numhask-space-0.1.1
+
+allow-newer: true
 # Override default flag values for local packages and extra-deps
 # flags: {}
 
