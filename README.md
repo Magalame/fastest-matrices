@@ -1,10 +1,10 @@
 # fastest-matrices
 
 This project benchmarks the following libraries:
-- hmatrix
-- dense-linear-algebra
-- numhask
-- matrix
+- [hmatrix](http://hackage.haskell.org/package/hmatrix)
+- [dense-linear-algebra](https://hackage.haskell.org/package/dense-linear-algebra)
+- [numhask](https://hackage.haskell.org/package/numhask)
+- [matrix](https://hackage.haskell.org/package/matrix-0.3.6.1)
 
 instead of relying on hackage, the project's dependencies fetch the libraries directly from github (see `stack.yaml`).
 
