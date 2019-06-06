@@ -12,43 +12,43 @@ Or:
 
 #### Matrix-matrix multiplication
 
-| Library | n = 10 | n = 50 | n = 100 | n = 1000 |
-| --- | --- | --- | --- | --- |
-| DLA | 3.400 μs | 339.2 μs | 2.377 ms | |
-| hmatrix | 1.179 μs | 56.76 μs | 297.6 μs | |
-| NumHask | 47.37 ms | 87.64 ms | 43.43 ms | |
-| Matrix | 10.84 μs | 974.9 μs | 8.329 ms | |
+| Library | n = 10 | n = 50 | n = 100 | 
+| --- | --- | --- | --- |
+| DLA | 3.400 μs | 339.2 μs | 2.377 ms |
+| hmatrix | 1.179 μs | 56.76 μs | 297.6 μs |
+| NumHask | 47.37 ms | 87.64 ms | 43.43 ms |
+| Matrix | 10.84 μs | 974.9 μs | 8.329 ms |
 
 #### Repeated matrix-matrix multiplication
 
-| Library | n = 10 | n = 50 | n = 100 | n = 1000 |
-| --- | --- | --- | --- | --- |
-| DLA | 9.217 μs | 1.050 ms | 7.566 ms | |
-| hmatrix | 3.945 μs | 168.5 μs | 905.6 μs | |
-| NumHask | 83.90 ms | 139.9 ms | 104.9 ms | |
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- |
+| DLA | 9.217 μs | 1.050 ms | 7.566 ms |
+| hmatrix | 3.945 μs | 168.5 μs | 905.6 μs |
+| NumHask | 83.90 ms | 139.9 ms | 104.9 ms |
 
 #### Matrix-vector multiplication
 
-| Library | n = 10 | n = 50 | n = 100 | n = 1000 |
-| --- | --- | --- | --- | --- |
-| DLA | 257.7 ns | 5.904 μs | 21.36 μs | |
-| hmatrix | 450.3 ns | 1.867 μs | 11.54 μs | |
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- | 
+| DLA | 257.7 ns | 5.904 μs | 21.36 μs | 
+| hmatrix | 450.3 ns | 1.867 μs | 11.54 μs | 
 
 #### QR factorization
 
-| Library | n = 10 | n = 50 | n = 100 | n = 1000 |
-| --- | --- | --- | --- | --- |
-| DLA | 3.050 μs | 312.8 μs | 2.375 ms | |
-| hmatrix | 68.20 μs | 5.653 ms | 46.28 ms | |
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- |
+| DLA | 3.050 μs | 312.8 μs | 2.375 ms |
+| hmatrix | 68.20 μs | 5.653 ms | 46.28 ms |
 
 #### Transpose
 
-| Library | n = 10 | n = 50 | n = 100 | n = 1000 |
-| --- | --- | --- | --- | --- |
-| DLA | 1.285 μs | 29.84 μs | 130.8 μs | |
-| hmatrix | 12.02 ns | 10.14 ns | 11.93 ns | |
-| NumHask | 9.356 μs | 10.85 μs | 8.424 μs | |
-| Matrix | 2.267 μs | 58.81 μs | 355.8 μs | |
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- |
+| DLA | 1.285 μs | 29.84 μs | 130.8 μs | 
+| hmatrix | 12.02 ns | 10.14 ns | 11.93 ns | 
+| NumHask | 9.356 μs | 10.85 μs | 8.424 μs | 
+| Matrix | 2.267 μs | 58.81 μs | 355.8 μs | 
 
 
 #### Norm
