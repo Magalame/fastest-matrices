@@ -25,7 +25,7 @@ Or:
 | --- | --- | --- | --- | --- |
 | DLA | | 1.050 ms | | |
 | hmatrix | | 168.5 μs | | |
-| hmatrix | | 139.9 ms  | | |
+| NumHask | | 139.9 ms  | | |
 
 #### Matrix-vector multiplication
 
