@@ -28,6 +28,7 @@ To run:
 | hmatrix | 1.179 μs | 56.76 μs | 297.6 μs |
 | NumHask | 47.37 ms | 87.64 ms | 43.43 ms |
 | Matrix | 10.84 μs | 974.9 μs | 8.329 ms |
+| Naive C | 51 us | 323 us | 4.78 ms |
 
 #### Repeated matrix-matrix multiplication
 
