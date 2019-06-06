@@ -9,6 +9,7 @@ This project benchmarks the following libraries:
 instead of relying on hackage, the project's dependencies fetch the libraries directly from github (see `stack.yaml`).
 
 To run:
+
 (runtime)
 `stack build :bench-alloc && stack exec bench-alloc`
 
@@ -59,7 +60,6 @@ To run:
 | NumHask | 9.356 μs | 10.85 μs | 8.424 μs | 
 | Matrix | 2.267 μs | 58.81 μs | 355.8 μs | 
 
-
 #### Norm
 
 | Library | n = 10 | n = 50 | n = 100 |
@@ -67,6 +67,7 @@ To run:
 | DLA | 197.0 ns | 5.067 μs | 20.10 μs |
 | hmatrix | 89.56 ns | 101.4 ns | 181.7 ns |
 | NumHask | 12.90 μs | 12.64 μs | 12.72 μs |
+| Naive C | 350 ns | 12.65 us | 50.96 us |
 
 #### Row
 
@@ -99,3 +100,66 @@ To run:
 | --- | --- | --- | --- |
 | DLA | 87.47 ns | 839.2 ns | 2.816 μs |
 | hmatrix | 1.665 μs | 27.49 μs | 143.3 μs |
+
+### Allocation
+
+#### Matrix-matrix multiplication
+
+| Library | n = 10 | n = 50 | n = 100 | 
+| --- | --- | --- | --- |
+| DLA | 976 | 20,176 | 80,176 |
+| hmatrix | 904 | 20,936 | 80,936|
+| NumHask | 179,093,816 | 179,093,816 | 179,093,816 |
+| Matrix | 18,160 | 392,288 | 1,544,056 |
+
+#### QR factorization
+
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- |
+| DLA | 1,848 | 40,248 | 160,248 |
+| hmatrix | 201,192 | 9,074,048 | 67,457,120 |
+
+#### Transpose
+
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- |
+| DLA | 880 | 20,080 | 80,080| 
+| hmatrix | 64 | 64 | 64 | 
+| NumHask | 0 | 0 | 0 | 
+| Matrix | 9,840 | 239,952 | 959,664 | 
+
+
+#### Norm
+
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- |
+| DLA | 16 | 16 | 16 |
+| hmatrix | 232 | 232 | 232 |
+| NumHask | 90,400 | 90,400 | 90,400 |
+
+#### Row
+
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- |
+| DLA | 64 | 64 | 64 |
+| hmatrix | 2,128 | 2,128 | 2,128 |
+| NumHask | 256 | 256 | 256 |
+| Matrix | 896 | 20,112 | 80,168|
+
+#### Column
+
+| Library | n = 10 | n = 50 | n = 100 | 
+| --- | --- | --- | --- | 
+| DLA | 160 | 480 | 880 |
+| hmatrix | 2,128 | 2,128 | 2,128 |
+| NumHask | 2,720 | 2,720 | 2,720 |
+| Matrix | 1,648 | 23,744  | 87,400 |
+
+#### Identity
+
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- |
+| DLA | 1,008 | 20,528  |80,928 |
+| hmatrix | 3,208 | 66,440 | 252,440 |
+| Matrix | 5,752 | 139,848 | 559,504 |
+
