@@ -1,9 +1,18 @@
 # fastest-matrices
 
+This project benchmarks the following libraries:
+- hmatrix
+- dense-linear-algebra
+- numhask
+- matrix
+
+instead of relying on hackage, the project's dependencies fetch the libraries directly from github (see `stack.yaml`).
+
 To run:
+(runtime)
 `stack build :bench-alloc && stack exec bench-alloc`
 
-Or:
+(allocation)
 `stack build :bench-runtime && stack exec bench-runtime`
 
 ## Results
