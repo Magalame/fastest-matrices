@@ -138,7 +138,7 @@ The implementations of the "naive C" parts can be found in `/naive`. They were c
 | --- | --- | --- | --- |
 | DLA | 16 | 16 | 16 |
 | hmatrix | 232 | 232 | 232 |
-| NumHask | 12,512 | 90,400 | 146,800|
+| NumHask | 146,800 | 2,919,552 | 11,641,752 |
 
 #### Row
 
