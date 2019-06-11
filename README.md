@@ -67,10 +67,10 @@ The implementations of the "naive C" parts can be found in `/naive`. They were c
 
 | Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 197.0 ns | 5.067 μs | 20.10 μs |
-| hmatrix | 89.56 ns | 101.4 ns | 3.579 μs |
-| NumHask | 3.282 μs | 12.64 μs | 3.428 ms |
-| Naive C | 350 ns | 12.65 us | 50.96 μs |
+| DLA | 154.3 ns | 3.716 μs | 15.83 μs |
+| hmatrix | 99.41 ns | 824.0 ns | 3.579 μs |
+| NumHask | 20.76 μs | 605.9 μs | 3.428 ms |
+| Naive C | 350 ns | 12.65 us | 40.96 μs |
 
 #### Row
 
