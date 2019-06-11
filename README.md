@@ -10,10 +10,10 @@ instead of relying on hackage, the project's dependencies fetch the libraries di
 
 To run:
 
-(runtime)
+(allocation)
 `stack build :bench-alloc && stack exec bench-alloc`
 
-(allocation)
+(runtime)
 `stack build :bench-runtime && stack exec bench-runtime`
 
 The implementations of the "naive C" parts can be found in `/naive`. They were compiled with `-O3`
