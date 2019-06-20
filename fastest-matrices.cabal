@@ -63,6 +63,7 @@ executable bench-alloc
     , vector
     , weigh
     , matrix
+    , massiv
     , split
     , numhask-array
     , numhask-prelude

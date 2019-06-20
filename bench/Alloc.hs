@@ -132,10 +132,10 @@ main = do
                W.func "NumHask Array - row" (NH.row (NP.Proxy :: NP.Proxy 0)) aNH
                W.func "NumHask Array - column" (NH.col (NP.Proxy :: NP.Proxy 0)) aNH
 
-               W.func "Massiv - norm" $ C.nf (sqrt . MA.foldlS (+) 0 . MA.zipWith (*) vMA) vMA,
-               W.func "Massiv - multiplication" $ C.nf ((MA.|*|) aMA) bMA,
-               W.func "Massiv - transpose" $ C.nf (MA.computeAs MA.P . MA.transpose) aMA,
-               W.func "Massiv - row" $ C.nf (MA.computeAs MA.P . (MA.!>) aMA) 0
+               W.func "Massiv - norm" (sqrt . MA.foldlS (+) 0 . MA.zipWith (*) vMA) vMA
+               W.func "Massiv - multiplication" ((MA.|*|) aMA) bMA
+               W.func "Massiv - transpose" (MA.computeAs MA.P . MA.transpose) aMA
+               W.func "Massiv - row" (MA.computeAs MA.P . (MA.!>) aMA) 0
 
                W.func "matrix - multiplication" (DMX.multStrassenMixed aDMX) bDMX
                W.func "matrix - transpose" DMX.transpose aDMX
