@@ -1,8 +1,3 @@
-{-# LANGUAGE PackageImports #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLists #-}
 
@@ -28,17 +23,17 @@ import qualified NumHask.Array as NH
 import qualified NumHask.Prelude as NP
 
 -- data.matrix from matrix
-import qualified "matrix" Data.Matrix as DMX
+import qualified Data.Matrix as DMX
 
--- bed and breakfast
-import qualified Numeric.Matrix as NM
+-- massiv
+import qualified Data.Massiv.Array as MA
 
 import qualified System.Random.MWC as Mwc
 
 import qualified Criterion.Main as C
 
 n :: Int
-n = 500
+n = 100
 
 vectorGen :: IO (Vector Double)
 vectorGen =  do 
@@ -60,9 +55,6 @@ identH = H.ident
 
 identDMX :: Int -> DMX.Matrix Double
 identDMX = DMX.identity
-
-identNM :: Int -> NM.Matrix Double
-identNM = NM.unit
 
 elemZero :: Double -> Double
 elemZero = const 0
@@ -95,16 +87,23 @@ main = do
       bH = (n H.>< n) uList
 
       subH = H.fromList . take n $ vList
+      vH = H.fromList vList
 
     --
-      aNH = NP.fromList vList :: NH.Array V.Vector '[50, 50] Double
-      bNH = NP.fromList uList :: NH.Array V.Vector '[50, 50] Double
+      aNH = NP.fromList vList :: NH.Array V.Vector '[100, 100] Double
+      bNH = NP.fromList uList :: NH.Array V.Vector '[100, 100] Double
 
-      subNH = NP.fromList . take n $ vList :: NH.Array V.Vector '[50] Double
+      subNH = NP.fromList . take n $ vList :: NH.Array V.Vector '[100] Double
+      vNH = NP.fromList vList :: NH.Array V.Vector '[10000] Double
 
     --
       aDMX = DMX.fromList n n vList
       bDMX = DMX.fromList n n uList
+
+    --
+      vMA = MA.fromList MA.Seq vList :: MA.Array MA.P MA.Ix1 Double
+      aMA = MA.resize' (MA.Ix2 n n) vMA :: MA.Array MA.P MA.Ix2 Double
+      bMA = MA.resize' (MA.Ix2 n n) $ MA.fromList MA.Seq uList :: MA.Array MA.P MA.Ix2 Double
 
     C.defaultMain [ 
         C.bgroup "DLA" [ 
@@ -125,41 +124,48 @@ main = do
                          C.bench "map const 0" $ C.nf (M.map elemZero) aDLA,
                          C.bench "map sqr" $ C.nf (M.map elemSqr) aDLA
                        ],
-        C.bgroup "Hmatrix" [ 
-                             C.bench "multiplication" $ C.nf ((<>) aH) bH,
-                             C.bench "repeated multiplication" $ C.nf ( H.sumElements . flip (H.?) [1] . (<>) bH . (<>) aH. (<>) aH) bH,
-                             C.bench "multiplicationV" $ C.nf ((H.#>) aH) subH,
+        -- C.bgroup "Hmatrix" [ 
+        --                      C.bench "multiplication" $ C.nf ((<>) aH) bH,
+        --                      C.bench "repeated multiplication" $ C.nf ( H.sumElements . flip (H.?) [1] . (<>) bH . (<>) aH . (<>) aH) bH,
+        --                      C.bench "multiplicationV" $ C.nf ((H.#>) aH) subH,
 
-                             C.bench "qr factorization" $ C.nf H.qr aH,
+        --                      C.bench "qr factorization" $ C.nf H.qr aH,
 
-                             C.bench "transpose" $ C.nf H.tr aH,
+        --                      C.bench "transpose" $ C.nf H.tr aH,
 
-                             C.bench "norm" $ C.nf H.norm_2 subH,
-                             C.bench "row" $ C.nf ((H.?) aH) [0],
-                             C.bench "column" $ C.nf ((H.¿) aH) [0], 
+        --                      C.bench "norm" $ C.nf H.norm_2 vH,
+        --                      C.bench "row" $ C.nf ((H.?) aH) [0],
+        --                      C.bench "column" $ C.nf ((H.¿) aH) [0], 
 
-                             C.bench "identity" $ C.nf identH n,
-                             C.bench "diag" $ C.nf H.diag subH,
-                             C.bench "map const 0" $ C.nf (mapH elemZero) aH,
-                             C.bench "map sqr" $ C.nf (mapH elemSqr) aH
-                           ],
-        C.bgroup "NumHask" [ 
-                             C.bench "multiplication" $ C.nf (NH.mmult aNH) bNH,
-                             C.bench "repeated multiplication" $ C.nf ( (\(NH.Array a) -> V.sum a) . NH.row (NP.Proxy :: NP.Proxy 1) . NH.mmult bNH . NH.mmult aNH . NH.mmult aNH ) bNH,
+        --                      C.bench "identity" $ C.nf identH n,
+        --                      C.bench "diag" $ C.nf H.diag subH,
+        --                      C.bench "map const 0" $ C.nf (mapH elemZero) aH,
+        --                      C.bench "map sqr" $ C.nf (mapH elemSqr) aH
+        --                    ],
+        -- C.bgroup "NumHask" [ 
+        --                      C.bench "multiplication" $ C.nf (NH.mmult aNH) bNH,
+        --                      C.bench "repeated multiplication" $ C.nf ( (\(NH.Array a) -> V.sum a) . NH.row (NP.Proxy :: NP.Proxy 1) . NH.mmult bNH . NH.mmult aNH . NH.mmult aNH ) bNH,
 
-                             C.bench "transpose" $ C.nf NH.transpose aNH,
+        --                      C.bench "transpose" $ C.nf NH.transpose aNH,
 
-                             C.bench "norm" $ C.nf (sqrt . (NP.<.> subNH)) subNH,
+        --                      C.bench "norm" $ C.nf (sqrt . (NP.<.> vNH)) vNH,
 
-                             C.bench "row" $ C.nf (NH.row (NP.Proxy :: NP.Proxy 0)) aNH,
-                             C.bench "column" $ C.nf (NH.col (NP.Proxy :: NP.Proxy 0)) aNH
-                           ],
+        --                      C.bench "row" $ C.nf (NH.row (NP.Proxy :: NP.Proxy 0)) aNH,
+        --                      C.bench "column" $ C.nf (NH.col (NP.Proxy :: NP.Proxy 0)) aNH
+        --                    ],
+        C.bgroup "Massiv" [ 
+                                 C.bench "norm" $ C.nf (sqrt . MA.foldlS (+) 0 . (MA.zipWith (*) vMA)) vMA,
+                                 C.bench "repeated multiplication" $ C.nf ( MA.foldlS (+) 0 .  flip (MA.!>) 1 . (MA.|*|) bMA . (MA.|*|) aMA . (MA.|*|) aMA) bMA,
+                                 C.bench "multiplication" $ C.nf ((MA.|*|) aMA) bMA,
+                                 C.bench "transpose" $ C.nf (MA.computeAs MA.P . MA.transpose) aMA,
+                                 C.bench "row" $ C.nf (MA.computeAs MA.P . (MA.!>) aMA) 0
 
-        C.bgroup "Matrix" [ 
-                                 C.bench "multiplication" $ C.nf (DMX.multStrassenMixed aDMX) bDMX,
-                                 C.bench "transpose" $ C.nf DMX.transpose aDMX,
-                                 C.bench "row" $ C.nf (DMX.getRow 1) aDMX,
-                                 C.bench "column" $ C.nf (DMX.getCol 1) aDMX,
-                                 C.bench "identity" $ C.nf identDMX n
                                  ]
+        -- C.bgroup "Matrix" [ 
+        --                          C.bench "multiplication" $ C.nf (DMX.multStrassenMixed aDMX) bDMX,
+        --                          C.bench "transpose" $ C.nf DMX.transpose aDMX,
+        --                          C.bench "row" $ C.nf (DMX.getRow 1) aDMX,
+        --                          C.bench "column" $ C.nf (DMX.getCol 1) aDMX,
+        --                          C.bench "identity" $ C.nf identDMX n
+        --                          ]
                   ]

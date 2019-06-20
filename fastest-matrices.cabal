@@ -41,9 +41,8 @@ executable bench-runtime
     , mwc-random
     , vector
     , matrix
-    , bed-and-breakfast
+    , massiv
     , split
-    , matrices
     , numhask-array
     , numhask-prelude
   default-language: Haskell2010
@@ -64,9 +63,7 @@ executable bench-alloc
     , vector
     , weigh
     , matrix
-    , bed-and-breakfast
     , split
-    , matrices
     , numhask-array
     , numhask-prelude
   default-language: Haskell2010

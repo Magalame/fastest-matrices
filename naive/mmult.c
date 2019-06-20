@@ -24,8 +24,8 @@ int main ()
     time_t t;
     int N, col1, row2, col2;
     srand ((unsigned) time (&t));
-    int i, j;
-    N=100;
+    int i, j, k;
+    N=50;
     double A[N*N];
     double B[N*N];
 
@@ -37,12 +37,13 @@ int main ()
         B[i] = rand();
     }
 
-    clock_t start = clock();
     double C[N*N];
-    mmult(A,B,C,N);
+    clock_t start = clock();
+    for (i = 0; i <100; i++)
+      mmult(A,B,C,N);
     clock_t end = clock();
 
-    printf("%3.20f ms\n", (end-start)/(double)CLOCKS_PER_SEC * 1000  );
+    printf("%3.20f ms\n", (end-start)/(double)CLOCKS_PER_SEC * 10  );
 
     /* Printing the contents of third matrix. */
 
