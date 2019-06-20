@@ -16,7 +16,10 @@ To run:
 (runtime)
 `stack build :bench-runtime && stack exec bench-runtime`
 
-The implementations of the "naive C" parts can be found in `/naive`. They were compiled with `-O3`
+Relevant details:
+
+- the implementations of the "naive C" parts can be found in `/naive`. They were compiled with `-O3`
+- the `massiv` benchmarks use the `Primitive` representation, which seems to be the fastest among what massiv offers
 
 ## Results
 
