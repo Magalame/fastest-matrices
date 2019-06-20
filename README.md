@@ -112,6 +112,7 @@ Relevant details:
 | DLA | 87.47 ns | 839.2 ns | 2.816 μs |
 | hmatrix | 1.665 μs | 27.49 μs | 143.3 μs |
 
+----------------------------------------------------------------------------------
 ### Allocation
 
 #### Matrix-matrix multiplication
@@ -121,6 +122,7 @@ Relevant details:
 | DLA | 976 | 20,176 | 80,176 |
 | hmatrix | 904 | 20,936 | 80,936|
 | NumHask | 1,691,432 | 179,093,816 | 1,400,273,872 |
+| Massiv | 5,816 | 140,216 | 560,216 |
 | Matrix | 18,160 | 392,288 | 1,544,056 |
 
 #### QR factorization
@@ -137,6 +139,7 @@ Relevant details:
 | DLA | 880 | 20,080 | 80,080| 
 | hmatrix | 64 | 64 | 64 | 
 | NumHask | 0 | 0 | 0 | 
+| Massiv | 872 | 20,072 | 80,072 | 
 | Matrix | 9,840 | 239,952 | 959,664 | 
 
 
@@ -147,6 +150,7 @@ Relevant details:
 | DLA | 16 | 16 | 16 |
 | hmatrix | 232 | 232 | 232 |
 | NumHask | 146,800 | 2,919,552 | 11,641,752 |
+| Massiv | 16 | 16 | 16 |
 
 #### Row
 
@@ -155,6 +159,7 @@ Relevant details:
 | DLA | 64 | 64 | 64 |
 | hmatrix | 2,128 | 2,128 | 2,128 |
 | NumHask | 256 | 256 | 256 |
+| Massiv | 144 | 464 | 864 |
 | Matrix | 896 | 20,112 | 80,168|
 
 #### Column
