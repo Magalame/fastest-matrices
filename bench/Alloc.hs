@@ -33,7 +33,7 @@ import qualified System.Random.MWC as Mwc
 import qualified Weigh as W
 
 n :: Int
-n = 50
+n = 100
 
 vectorGen :: IO (Vector Double)
 vectorGen =  do 
