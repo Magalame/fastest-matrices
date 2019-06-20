@@ -29,6 +29,7 @@ The implementations of the "naive C" parts can be found in `/naive`. They were c
 | DLA | 3.400 μs | 339.2 μs | 2.377 ms |
 | hmatrix | 1.179 μs | 56.76 μs | 297.6 μs |
 | NumHask | 659.4 μs | 87.64 ms | 310.4 ms |
+| Massiv | 3.350 μs | 87.64 ms | 310.4 ms |
 | Matrix | 10.84 μs | 974.9 μs | 8.329 ms |
 | Naive C | 51 us | 323 us | 4.78 ms |
 
@@ -39,6 +40,7 @@ The implementations of the "naive C" parts can be found in `/naive`. They were c
 | DLA | 9.217 μs | 1.050 ms | 7.566 ms |
 | hmatrix | 3.945 μs | 168.5 μs | 905.6 μs |
 | NumHask | 1.060 ms | 139.9 ms | 691.9 ms |
+| Massiv | 7.015 μs | 87.64 ms | 310.4 ms |
 
 #### Matrix-vector multiplication
 
@@ -61,6 +63,7 @@ The implementations of the "naive C" parts can be found in `/naive`. They were c
 | DLA | 1.285 μs | 29.84 μs | 130.8 μs | 
 | hmatrix | 12.02 ns | 10.14 ns | 11.93 ns | 
 | NumHask | 446.9 ns | 10.85 μs | 35.28 μs | 
+| Massiv | 171.0 ns | 10.85 μs | 35.28 μs | 
 | Matrix | 2.267 μs | 58.81 μs | 355.8 μs | 
 
 #### Norm
@@ -79,6 +82,7 @@ The implementations of the "naive C" parts can be found in `/naive`. They were c
 | DLA | 16.01 ns | 16.32 ns | 17.05 ns |
 | hmatrix | 704.6 ns | 696.4 ns | 739.7 ns |
 | NumHask | 41.40 ns | 175.1 ns | 377.8 ns |
+| Massiv | 43.43 ns | 175.1 ns | 377.8 ns |
 | Matrix | 42.94 ns | 185.9 ns | 340.5 ns |
 
 #### Column
