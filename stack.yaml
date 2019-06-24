@@ -65,7 +65,7 @@ extra-deps:
     - packages/base
 
 - git: https://github.com/lehins/massiv.git
-  # commit: fc06e0dbf48b336e71677d44559aec9b95a671a1 # 0.3.5.0
+  # commit: 3809bf8885f7de4d41fc1a2357888e5e1f0669b3 # 0.3.5.0
   commit: 52d0905260621601dfe9907c295a068c3d425c43 # 0.2.8.0
   subdirs:
     - massiv
