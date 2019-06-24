@@ -34,8 +34,7 @@ resolver: lts-13.22
 #  - wai
 packages:
 - .
-- /home/nouey/dh-core/dense-linear-algebra
-- /home/nouey/Projects/massiv/massiv
+# - /home/nouey/Projects/massiv/massiv
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
@@ -52,6 +51,10 @@ extra-deps:
 #   commit: c61feb36f884aa3760740a0c47a774df92199f8b
 #   subdirs: 
 #     - dense-linear-algebra
+- git: https://github.com/DataHaskell/dh-core.git
+  commit: c61feb36f884aa3760740a0c47a774df92199f8b
+  subdirs: 
+    - dense-linear-algebra
 
 - git: https://github.com/scravy/bed-and-breakfast.git
   commit: e900464394bb13edeb7a439ec758f059dc4712db
@@ -60,7 +63,13 @@ extra-deps:
   commit: 5e4bb9a51645dd26e4d506ea9aa78c60ccfa138a
   subdirs:
     - packages/base
-    
+
+- git: https://github.com/lehins/massiv.git
+  # commit: fc06e0dbf48b336e71677d44559aec9b95a671a1 # 0.3.0
+  commit: 52d0905260621601dfe9907c295a068c3d425c43 # 0.2.8
+  subdirs:
+    - massiv
+
 - dimensions-1.0.1.1
 - scheduler-1.0.0
 
