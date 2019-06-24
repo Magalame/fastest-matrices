@@ -23,6 +23,10 @@ Relevant details:
 - the `massiv` benchmarks use the `Primitive` representation, which **seems** to be the fastest among what massiv offers
 - the benchmarked functions from DLA are taken from the `Fast` module when possible
 
+Formely included:
+- `bed-and-breakfast` (abandoned because too slow)
+- `matrices` (abandoned because too slow)
+
 ## Results
 
 ### Runtime
