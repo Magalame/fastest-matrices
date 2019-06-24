@@ -102,8 +102,8 @@ main = do
 
     --
       vMA = MA.fromList MA.Seq vList :: MA.Array MA.P MA.Ix1 Double
-      aMA = MA.resize' (MA.Ix2 n n) vMA :: MA.Array MA.P MA.Ix2 Double
-      bMA = MA.resize' (MA.Ix2 n n) $ MA.fromList MA.Seq uList :: MA.Array MA.P MA.Ix2 Double
+      aMA' = MA.resize' (MA.Sz (n MA.:. n)) vMA :: MA.Array MA.P MA.Ix2 Double
+      bMA' = MA.resize' (MA.Sz (n MA.:. n)) $ MA.fromList MA.Seq uList :: MA.Array MA.P MA.Ix2 Double
 
     C.defaultMain [ 
         C.bgroup "DLA" [ 
@@ -153,12 +153,16 @@ main = do
                              C.bench "row" $ C.nf (NH.row (NP.Proxy :: NP.Proxy 0)) aNH,
                              C.bench "column" $ C.nf (NH.col (NP.Proxy :: NP.Proxy 0)) aNH
                            ],
-        C.bgroup "Massiv" [ 
+        C.env (pure (aMA', bMA')) $ \ ~(aMA, bMA) ->
+            C.bgroup "Massiv" [
                                  C.bench "norm" $ C.nf (sqrt . MA.foldlS (+) 0 . (MA.zipWith (*) vMA)) vMA,
                                  C.bench "repeated multiplication" $ C.nf ( MA.foldlS (+) 0 .  flip (MA.!>) 1 . (MA.|*|) bMA . (MA.|*|) aMA . (MA.|*|) aMA) bMA,
+                                 C.bench "repeated multiplication (Par)" $ C.nf ( MA.foldlS (+) 0 .  flip (MA.!>) 1 . (MA.|*|) bMA . (MA.|*|) aMA . (MA.|*|) (MA.setComp MA.Par aMA)) bMA,
                                  C.bench "multiplication" $ C.nf ((MA.|*|) aMA) bMA,
+                                 C.bench "multiplication (Par)" $ C.nf ((MA.|*|) (MA.setComp MA.Par aMA)) bMA,
                                  C.bench "transpose" $ C.nf (MA.computeAs MA.P . MA.transpose) aMA,
-                                 C.bench "row" $ C.nf (MA.computeAs MA.P . (MA.!>) aMA) 0
+                                 C.bench "row" $ C.nf (MA.computeAs MA.P . (MA.!>) aMA) 0,
+                                 C.bench "column" $ C.nf (MA.computeAs MA.P . (MA.<!) aMA) 0
 
                                  ],
         C.bgroup "Matrix" [ 
