@@ -110,36 +110,36 @@ main = do
 
 
     W.mainWith (do 
-               W.func "DLA - multiplication" (MF.multiply aDLA) bDLA
-               W.func "DLA - qr factorization" A.qr aDLA
+               -- W.func "DLA - multiplication" (MF.multiply aDLA) bDLA
+               -- W.func "DLA - qr factorization" A.qr aDLA
                W.func "DLA - transpose" M.transpose aDLA
-               W.func "DLA - norm" MF.norm vDLA
-               W.func "DLA - row" (M.row  aDLA) 0
-               W.func "DLA - column" (M.column  aDLA) 0
-               W.func "DLA - identity" M.ident n
+               -- W.func "DLA - norm" MF.norm vDLA
+               -- W.func "DLA - row" (M.row  aDLA) 0
+               -- W.func "DLA - column" (M.column  aDLA) 0
+               -- W.func "DLA - identity" M.ident n
 
-               W.func "Hmatrix - multiplication" ((<>) aH) bH
-               W.func "Hmatrix - qr factorization" H.qr aH
+               -- W.func "Hmatrix - multiplication" ((<>) aH) bH
+               -- W.func "Hmatrix - qr factorization" H.qr aH
                W.func "Hmatrix - transpose" H.tr aH
-               W.func "Hmatrix - norm" H.norm_2 vH
-               W.func "Hmatrix - row" ((H.?) aH) [0]
-               W.func "Hmatrix - column" ((H.¿) aH) [0]
-               W.func "Hmatrix - identity" identH n
+               -- W.func "Hmatrix - norm" H.norm_2 vH
+               -- W.func "Hmatrix - row" ((H.?) aH) [0]
+               -- W.func "Hmatrix - column" ((H.¿) aH) [0]
+               -- W.func "Hmatrix - identity" identH n
 
-               W.func "NumHask Array - multiplication" (NH.mmult aNH) bNH
+               -- W.func "NumHask Array - multiplication" (NH.mmult aNH) bNH
                W.func "NumHask Array - transpose" NH.transpose aNH
-               W.func "NumHask Array - norm" (sqrt . (NP.<.> vNH)) vNH
-               W.func "NumHask Array - row" (NH.row (NP.Proxy :: NP.Proxy 0)) aNH
-               W.func "NumHask Array - column" (NH.col (NP.Proxy :: NP.Proxy 0)) aNH
+               -- W.func "NumHask Array - norm" (sqrt . (NP.<.> vNH)) vNH
+               -- W.func "NumHask Array - row" (NH.row (NP.Proxy :: NP.Proxy 0)) aNH
+               -- W.func "NumHask Array - column" (NH.col (NP.Proxy :: NP.Proxy 0)) aNH
 
-               W.func "Massiv - norm" (sqrt . MA.foldlS (+) 0 . MA.zipWith (*) vMA) vMA
-               W.func "Massiv - multiplication" ((MA.|*|) aMA) bMA
+               -- W.func "Massiv - norm" (sqrt . MA.foldlS (+) 0 . MA.zipWith (*) vMA) vMA
+               -- W.func "Massiv - multiplication" ((MA.|*|) aMA) bMA
                W.func "Massiv - transpose" (MA.computeAs MA.P . MA.transpose) aMA
-               W.func "Massiv - row" (MA.computeAs MA.P . (MA.!>) aMA) 0
+               -- W.func "Massiv - row" (MA.computeAs MA.P . (MA.!>) aMA) 0
 
-               W.func "matrix - multiplication" (DMX.multStrassenMixed aDMX) bDMX
+               -- W.func "matrix - multiplication" (DMX.multStrassenMixed aDMX) bDMX
                W.func "matrix - transpose" DMX.transpose aDMX
-               W.func "matrix - row" (DMX.getRow 1) aDMX
-               W.func "matrix - column" (DMX.getCol 1) aDMX
-               W.func "matrix - identity" identDMX n
+               -- W.func "matrix - row" (DMX.getRow 1) aDMX
+               -- W.func "matrix - column" (DMX.getCol 1) aDMX
+               -- W.func "matrix - identity" identDMX n
                )

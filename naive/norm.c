@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define x_size 100*100
+#define x_size 16000
 
 double dot(double *x, double *y, int n) {
   double theSum = 0.0;
