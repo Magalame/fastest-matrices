@@ -2,8 +2,9 @@
 
 This project benchmarks the following libraries:
 - [hmatrix](http://hackage.haskell.org/package/hmatrix)
-- [dense-linear-algebra](https://hackage.haskell.org/package/dense-linear-algebra)
+- [dense-linear-algebra](https://hackage.haskell.org/package/dense-linear-algebra) (refered to as DLA henceforth)
 - [numhask](https://hackage.haskell.org/package/numhask)
+- [massiv](http://hackage.haskell.org/package/massiv)
 - [matrix](https://hackage.haskell.org/package/matrix-0.3.6.1)
 
 instead of relying on hackage, the project's dependencies fetch the libraries directly from github (see `stack.yaml`).
@@ -19,7 +20,8 @@ To run:
 Relevant details:
 
 - the implementations of the "naive C" parts can be found in `/naive`. They were compiled with `-O3`
-- the `massiv` benchmarks use the `Primitive` representation, which seems to be the fastest among what massiv offers
+- the `massiv` benchmarks use the `Primitive` representation, which **seems** to be the fastest among what massiv offers
+- the benchmarked functions from DLA are taken from the `Fast` module when possible
 
 ## Results
 
