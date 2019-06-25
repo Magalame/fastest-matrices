@@ -34,6 +34,7 @@ resolver: lts-13.22
 #  - wai
 packages:
 - .
+- /home/nouey/Projects/massiv/massiv
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
@@ -60,7 +61,7 @@ extra-deps:
     - packages/base
     
 - dimensions-1.0.1.1
-
+- scheduler-1.4.0
 allow-newer: true
 # Override default flag values for local packages and extra-deps
 # flags: {}
