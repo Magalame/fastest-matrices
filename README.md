@@ -1,4 +1,9 @@
 # fastest-matrices
+TODO:
+- automatically parse the results
+- have a cleaner/more abstract interface for the benches
+- add the `Par` benches to Alloc.hs too
+- add `env` to every library
 
 This project benchmarks the following libraries:
 - [hmatrix](http://hackage.haskell.org/package/hmatrix)
