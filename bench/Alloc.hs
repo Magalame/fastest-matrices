@@ -105,8 +105,8 @@ main = do
 
     -- 
       vMA = MA.fromList MA.Seq vList :: MA.Array MA.P MA.Ix1 Double
-      aMA = MA.resize' (MA.Ix2 n n) vMA :: MA.Array MA.P MA.Ix2 Double
-      bMA = MA.resize' (MA.Ix2 n n) $ MA.fromList MA.Seq uList :: MA.Array MA.P MA.Ix2 Double
+      aMA = MA.resize' (MA.Sz (n MA.:. n)) vMA :: MA.Array MA.P MA.Ix2 Double
+      bMA = MA.resize' (MA.Sz (n MA.:. n)) $ MA.fromList MA.Seq uList :: MA.Array MA.P MA.Ix2 Double
 
 
     W.mainWith (do 
