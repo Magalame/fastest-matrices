@@ -25,8 +25,9 @@ To run:
 Relevant details:
 
 - the implementations of the "naive C" parts can be found in `/naive`. They were compiled with `-O3`
-- the `massiv` benchmarks use the `Primitive` representation, which **seems** to be the fastest among what massiv offers
-- the benchmarked functions from DLA are taken from the `Fast` module when possible
+- the `massiv` benchmarks use the `Primitive` representation, which *seems* to be the fastest among what massiv offers
+- the benchmarked functions from DLA are taken from the `Fast` module when available
+- the `norm` function is called on `n*n` vectors
 
 Formely included:
 - `bed-and-breakfast` (abandoned because too slow)
