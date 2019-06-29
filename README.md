@@ -31,7 +31,7 @@ Relevant details:
 
 Formely included:
 - `bed-and-breakfast` (abandoned because too slow)
-- `matrices` (abandoned because too slow)
+- `matrices` (abandoned because too slow, also see https://github.com/kaizhang/matrices/issues/8)
 
 ## Results
 
