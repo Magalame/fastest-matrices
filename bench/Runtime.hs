@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE CPP #-}
 
 
 module Main where
@@ -32,8 +33,11 @@ import qualified System.Random.MWC as Mwc
 
 import qualified Criterion.Main as C
 
+#define N 1000
+#define N2 1000000
+
 n :: Int
-n = 100
+n = N
 
 vectorGen :: IO (Vector Double)
 vectorGen =  do 
@@ -90,10 +94,10 @@ main = do
       vH' = H.fromList vList
 
     --
-      aNH' = NP.fromList vList :: NH.Array V.Vector '[100, 100] Double
-      bNH' = NP.fromList uList :: NH.Array V.Vector '[100, 100] Double
+      aNH' = NP.fromList vList :: NH.Array V.Vector '[N, N] Double
+      bNH' = NP.fromList uList :: NH.Array V.Vector '[N, N] Double
 
-      vNH' = NP.fromList vList :: NH.Array V.Vector '[10000] Double
+      vNH' = NP.fromList vList :: NH.Array V.Vector '[N2] Double
 
     --
       aDMX' = DMX.fromList n n vList
@@ -110,51 +114,43 @@ main = do
                          C.bench "multiplication" $ C.nf (MF.multiply aDLA) bDLA,
                          C.bench "repeated multiplication" $ C.nf (U.sum . (flip M.row) 1 . MF.multiply bDLA . MF.multiply aDLA . MF.multiply aDLA ) bDLA,
                          C.bench "multiplicationV" $ C.nf (MF.multiplyV aDLA) subDLA,
-
                          C.bench "qr factorization" $ C.nf A.qr aDLA,
-
                          C.bench "transpose" $ C.nf M.transpose aDLA,
-
                          C.bench "norm" $ C.nf MF.norm vDLA,
                          C.bench "row" $ C.nf (M.row  aDLA) 0,
                          C.bench "column" $ C.nf (M.column  aDLA) 0,
-
                          C.bench "identity" $ C.nf M.ident n, 
                          C.bench "diag" $ C.nf M.diag subDLA, 
                          C.bench "map const 0" $ C.nf (M.map elemZero) aDLA,
                          C.bench "map sqr" $ C.nf (M.map elemSqr) aDLA
                        ],
+
         C.env (pure (aH', bH', subH', vH')) $ \ ~(aH, bH, subH, vH) ->
             C.bgroup "Hmatrix" [ 
                              C.bench "multiplication" $ C.nf ((<>) aH) bH,
                              C.bench "repeated multiplication" $ C.nf ( H.sumElements . flip (H.?) [1] . (<>) bH . (<>) aH . (<>) aH) bH,
                              C.bench "multiplicationV" $ C.nf ((H.#>) aH) subH,
-
                              C.bench "qr factorization" $ C.nf H.qr aH,
-
                              C.bench "transpose" $ C.nf H.tr aH,
-
                              C.bench "norm" $ C.nf H.norm_2 vH,
                              C.bench "row" $ C.nf ((H.?) aH) [0],
                              C.bench "column" $ C.nf ((H.¿) aH) [0], 
-
                              C.bench "identity" $ C.nf identH n,
                              C.bench "diag" $ C.nf H.diag subH,
                              C.bench "map const 0" $ C.nf (mapH elemZero) aH,
                              C.bench "map sqr" $ C.nf (mapH elemSqr) aH
                            ],
+
         C.env (pure (aNH', bNH', vNH')) $ \ ~(aNH, bNH, vNH) ->
             C.bgroup "NumHask" [ 
                              C.bench "multiplication" $ C.nf (NH.mmult aNH) bNH,
                              C.bench "repeated multiplication" $ C.nf ( (\(NH.Array a) -> V.sum a) . NH.row (NP.Proxy :: NP.Proxy 1) . NH.mmult bNH . NH.mmult aNH . NH.mmult aNH ) bNH,
-
                              C.bench "transpose" $ C.nf NH.transpose aNH,
-
                              C.bench "norm" $ C.nf (sqrt . (NP.<.> vNH)) vNH,
-
                              C.bench "row" $ C.nf (NH.row (NP.Proxy :: NP.Proxy 0)) aNH,
                              C.bench "column" $ C.nf (NH.col (NP.Proxy :: NP.Proxy 0)) aNH
                            ],
+
         C.env (pure (aMA', bMA', vMA')) $ \ ~(aMA, bMA, vMA) ->
             C.bgroup "Massiv" [
                                  C.bench "multiplication" $ C.nf ((MA.|*|) aMA) bMA,
@@ -165,8 +161,8 @@ main = do
                                  C.bench "transpose" $ C.nf (MA.computeAs MA.P . MA.transpose) aMA,
                                  C.bench "row" $ C.nf (MA.computeAs MA.P . (MA.!>) aMA) 0,
                                  C.bench "column" $ C.nf (MA.computeAs MA.P . (MA.<!) aMA) 0
-
                                  ],
+
         C.env (pure (aDMX', bDMX')) $ \ ~(aDMX, bDMX) ->
                 C.bgroup "Matrix" [ 
                                  C.bench "multiplication" $ C.nf (DMX.multStrassenMixed aDMX) bDMX,

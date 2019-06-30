@@ -47,7 +47,7 @@ extra-deps:
     - numhask-array
 
 - git: https://github.com/DataHaskell/dh-core.git
-  commit: c61feb36f884aa3760740a0c47a774df92199f8b
+  commit: 545c4b974dd35d971dc400836878c15e1c41ee07
   subdirs: 
     - dense-linear-algebra
 
@@ -61,7 +61,7 @@ extra-deps:
 
 - scheduler-1.4.0@sha256:b182be9a7b84e1dba02dac761c3f4e204521d0f779d72d86040789d5aaadf92a,2833
 - git: https://github.com/lehins/massiv.git
-  commit: 3809bf8885f7de4d41fc1a2357888e5e1f0669b3
+  commit: 3a6353086bbae95425d1acf240d21a9feeeb06c6
   subdirs:
     - massiv
 
