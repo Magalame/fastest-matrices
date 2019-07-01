@@ -2,6 +2,9 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE CPP #-}
 
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main where
 
@@ -27,6 +30,8 @@ import Statistics.Matrix.Mutable  (unsafeNew,unsafeWrite,unsafeFreeze)
 
 import Data.SIMD 
 import qualified Data.Vector.Generic as VG
+import GHC.Prim
+import GHC.Types
 
 -- hmatrix
 import qualified Numeric.LinearAlgebra as H
@@ -45,8 +50,8 @@ import qualified System.Random.MWC as Mwc
 
 import qualified Criterion.Main as C
 
-#define N 5
-#define N2 25
+#define N 100
+#define N2 10000
 
 n :: Int
 n = N
@@ -125,7 +130,8 @@ main = do
             C.bgroup "DLA" [ 
                          C.bench "Matrix-matrix multiplication" $ C.nf (MF.multiply aDLA) bDLA,
                          C.bench "Matrix-matrix multiplication2" $ C.nf (multiplyT3 aDLA) bDLA,
-                         C.bench "Matrix-matrix multiplication2" $ C.nf (multiplyT4 aDLA) bDLA
+                         C.bench "Matrix-matrix multiplication2" $ C.nf (multiplyT4 aDLA) bDLA,
+                         C.bench "Matrix-matrix multiplication2" $ C.nf (multiplyT5 aDLA) bDLA
                          -- C.bench "Repeated matrix-matrix multiplication" $ C.nf (U.sum . (flip M.row) 1 . MF.multiply bDLA . MF.multiply aDLA . MF.multiply aDLA ) bDLA,
                          -- C.bench "Matrix-vector multiplication" $ C.nf (MF.multiplyV aDLA) subDLA,
                          -- C.bench "QR factorization" $ C.nf A.qr aDLA,
@@ -188,8 +194,8 @@ main = do
                   ]
 
 
-    print $ (MF.multiply aDLA') bDLA'
-    print $ (multiplyT3 aDLA') bDLA'
+    -- print $ (MF.multiply aDLA') bDLA'
+    -- print $ (multiplyT3 aDLA') bDLA'
 
 
 multiplyT3 :: M.Matrix -> M.Matrix -> M.Matrix
@@ -228,3 +234,52 @@ norm_simd4 v1 v2 = plusHorizontalX4 $ go 0 (VG.length v1'-1)
                 mul = c1*c2
                 c1 = v1' `VG.unsafeIndex` i
                 c2 = v2' `VG.unsafeIndex` i
+
+
+
+multiplyT5 :: M.Matrix -> M.Matrix -> M.Matrix
+multiplyT5 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
+  m3 <- unsafeNew r1 c2
+  M.for 0 c2 $ \j -> do
+    M.for 0 r1 $ \i -> do
+      let 
+        z = norm_simd5 (M.row m1 i) (M.row m2' j)
+      unsafeWrite m3 i j z
+  unsafeFreeze m3
+    where m2' = MF.transpose m2 
+
+unD# :: Double -> Double#
+unD# (D# i#) = i#
+
+
+-- norm_simd4 :: U.Vector Double -> U.Vector Double -> Double 
+-- norm_simd4 v1 v2 = plusHorizontal $ go (broadcastDoubleX4# (int2Double# 0#) ) (len-1)
+--     where
+--         len = VG.length v1 `quot` 4
+
+--         go tot (-1) = tot
+--         go tot i = go tot' (i-1)
+--             where
+--                 tot' = plusDoubleX4# tot mul
+--                 mul = timesDoubleX4# c1 c2
+--                 c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
+--                 c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
+
+norm_simd5 :: U.Vector Double -> U.Vector Double -> Double 
+norm_simd5 v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
+    where
+        len = VG.length v1 `quot` 4
+
+        go tot (-1) = tot
+        go tot i = go tot' (i-1)
+            where
+                tot' = plusDoubleX4# tot mul
+                mul = timesDoubleX4# c1 c2
+                c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
+                c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
+
+
+plusHorizontal :: DoubleX4# -> Double
+plusHorizontal v = D# (r1+##r2+##r3+##r4)
+  where
+    (# r1,r2,r3,r4 #) = unpackDoubleX4# v

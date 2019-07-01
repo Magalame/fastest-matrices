@@ -1,7 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLists #-}
-
-
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Main where
 
 
@@ -15,6 +16,19 @@ import qualified Statistics.Matrix as M
 import qualified Statistics.Matrix.Fast as MF
 import qualified Statistics.Matrix.Fast.Algorithms as A
 
+import Control.Monad.ST
+import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Mutable as UM
+
+
+import qualified Statistics.Matrix.Function as M
+import qualified Statistics.Matrix.Types as M
+import Statistics.Matrix.Mutable  (unsafeNew,unsafeWrite,unsafeFreeze)
+
+import Data.SIMD 
+import qualified Data.Vector.Generic as VG
+import GHC.Prim
+import GHC.Types
 -- hmatrix
 import qualified Numeric.LinearAlgebra as H
 
@@ -33,7 +47,7 @@ import qualified System.Random.MWC as Mwc
 import qualified Weigh as W
 
 n :: Int
-n = 100
+n = 4
 
 vectorGen :: IO (Vector Double)
 vectorGen =  do 
@@ -111,6 +125,8 @@ main = do
 
     W.mainWith (do 
                W.func "DLA - multiplication" (MF.multiply aDLA) bDLA
+               W.func "DLA - multiplication2" (multiplyT3 aDLA) bDLA
+               W.func "DLA - multiplication3" (multiplyT4 aDLA) bDLA
                W.func "DLA - qr factorization" A.qr aDLA
                W.func "DLA - transpose" M.transpose aDLA
                W.func "DLA - norm" MF.norm vDLA
@@ -145,3 +161,64 @@ main = do
                W.func "matrix - column" (DMX.getCol 1) aDMX
                W.func "matrix - identity" identDMX n
                )
+
+    print $ (MF.multiply aDLA) bDLA
+    print $ (multiplyT4 aDLA) bDLA
+
+multiplyT3 :: M.Matrix -> M.Matrix -> M.Matrix
+multiplyT3 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
+  m3 <- unsafeNew r1 c2
+  M.for 0 c2 $ \j -> do
+    M.for 0 r1 $ \i -> do
+      let 
+        z = U.sum $ U.zipWith (*) (M.row m1 i) (M.row m2' j)
+      unsafeWrite m3 i j z
+  unsafeFreeze m3
+    where m2' = MF.transpose m2 
+
+multiplyT4 :: M.Matrix -> M.Matrix -> M.Matrix
+multiplyT4 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
+  m3 <- unsafeNew r1 c2
+  M.for 0 c2 $ \j -> do
+    M.for 0 r1 $ \i -> do
+      let 
+        z = norm_simd4 (M.row m1 i) (M.row m2' j)
+      unsafeWrite m3 i j z
+  unsafeFreeze m3
+    where m2' = MF.transpose m2 
+
+unD# :: Double -> Double#
+unD# (D# i#) = i#
+
+
+-- norm_simd4 :: U.Vector Double -> U.Vector Double -> Double 
+-- norm_simd4 v1 v2 = plusHorizontal $ go (broadcastDoubleX4# (int2Double# 0#) ) (len-1)
+--     where
+--         len = VG.length v1 `quot` 4
+
+--         go tot (-1) = tot
+--         go tot i = go tot' (i-1)
+--             where
+--                 tot' = plusDoubleX4# tot mul
+--                 mul = timesDoubleX4# c1 c2
+--                 c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
+--                 c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
+
+norm_simd4 :: U.Vector Double -> U.Vector Double -> Double 
+norm_simd4 v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
+    where
+        len = VG.length v1 `quot` 4
+
+        go tot (-1) = tot
+        go tot i = go tot' (i-1)
+            where
+                tot' = plusDoubleX4# tot mul
+                mul = timesDoubleX4# c1 c2
+                c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
+                c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
+
+
+plusHorizontal :: DoubleX4# -> Double
+plusHorizontal v = D# (r1+##r2+##r3+##r4)
+  where
+    (# r1,r2,r3,r4 #) = unpackDoubleX4# v
