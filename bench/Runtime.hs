@@ -129,14 +129,15 @@ main = do
         C.env (pure (aDLA', bDLA', subDLA', vDLA')) $ \ ~(aDLA, bDLA, subDLA, vDLA) ->
             C.bgroup "DLA" [ 
                          C.bench "Matrix-matrix multiplication" $ C.nf (MF.multiply aDLA) bDLA,
-                         C.bench "Matrix-matrix multiplication2" $ C.nf (multiplyT3 aDLA) bDLA,
-                         C.bench "Matrix-matrix multiplication2" $ C.nf (multiplyT4 aDLA) bDLA,
-                         C.bench "Matrix-matrix multiplication2" $ C.nf (multiplyT5 aDLA) bDLA
+                         C.bench "Matrix-matrix multiplication w transpose" $ C.nf (multiplyT3 aDLA) bDLA,
+                         C.bench "Matrix-matrix multiplication basic simd" $ C.nf (multiplyT4 aDLA) bDLA,
+                         C.bench "Matrix-matrix multiplication low alloc simd" $ C.nf (multiplyT5 aDLA) bDLA
                          -- C.bench "Repeated matrix-matrix multiplication" $ C.nf (U.sum . (flip M.row) 1 . MF.multiply bDLA . MF.multiply aDLA . MF.multiply aDLA ) bDLA,
                          -- C.bench "Matrix-vector multiplication" $ C.nf (MF.multiplyV aDLA) subDLA,
                          -- C.bench "QR factorization" $ C.nf A.qr aDLA,
                          -- C.bench "Transpose" $ C.nf MF.transpose aDLA,
-                         -- C.bench "Norm" $ C.nf MF.norm vDLA,
+                         ,C.bench "Norm" $ C.nf MF.norm vDLA
+                         ,C.bench "Norm simd" $ C.nf norm_simd6 vDLA
                          -- C.bench "Row" $ C.nf (M.row  aDLA) 0,
                          -- C.bench "Clumn" $ C.nf (M.column  aDLA) 0,
                          -- C.bench "Identity" $ C.nf M.ident n, 
@@ -147,12 +148,12 @@ main = do
 
         C.env (pure (aH', bH', subH', vH')) $ \ ~(aH, bH, subH, vH) ->
             C.bgroup "Hmatrix" [ 
-                             C.bench "Matrix-matrix multiplication" $ C.nf ((<>) aH) bH
+                             C.bench "Matrix-matrix multiplication" $ C.nf ((<>) aH) bH,
                              -- C.bench "Repeated matrix-matrix multiplication" $ C.nf ( H.sumElements . flip (H.?) [1] . (<>) bH . (<>) aH . (<>) aH) bH,
                              -- C.bench "Matrix-vector multiplication" $ C.nf ((H.#>) aH) subH,
                              -- C.bench "QR factorization" $ C.nf H.qr aH,
                              -- C.bench "Transpose" $ C.nf H.tr aH,
-                             -- C.bench "Norm" $ C.nf H.norm_2 vH,
+                             C.bench "Norm" $ C.nf H.norm_2 vH
                              -- C.bench "Row" $ C.nf ((H.?) aH) [0],
                              -- C.bench "Column" $ C.nf ((H.¿) aH) [0], 
                              -- C.bench "Identity" $ C.nf identH n,
@@ -196,6 +197,8 @@ main = do
 
     -- print $ (MF.multiply aDLA') bDLA'
     -- print $ (multiplyT3 aDLA') bDLA'
+    print $ norm_simd6 vDLA'
+    print $ MF.norm vDLA'
 
 
 multiplyT3 :: M.Matrix -> M.Matrix -> M.Matrix
@@ -283,3 +286,16 @@ plusHorizontal :: DoubleX4# -> Double
 plusHorizontal v = D# (r1+##r2+##r3+##r4)
   where
     (# r1,r2,r3,r4 #) = unpackDoubleX4# v
+
+
+norm_simd6 :: U.Vector Double -> Double 
+norm_simd6 v1 = sqrt $ plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
+    where
+        len = VG.length v1 `quot` 4
+
+        go tot (-1) = tot
+        go tot i = go tot' (i-1)
+            where
+                tot' = plusDoubleX4# tot mul
+                mul = timesDoubleX4# c1 c1
+                c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
