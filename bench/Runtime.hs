@@ -128,16 +128,21 @@ main = do
     C.defaultMain [ 
         C.env (pure (aDLA', bDLA', subDLA', vDLA')) $ \ ~(aDLA, bDLA, subDLA, vDLA) ->
             C.bgroup "DLA" [ 
-                         C.bench "Matrix-matrix multiplication" $ C.nf (MF.multiply aDLA) bDLA,
-                         C.bench "Matrix-matrix multiplication w transpose" $ C.nf (multiplyT3 aDLA) bDLA,
-                         C.bench "Matrix-matrix multiplication basic simd" $ C.nf (multiplyT4 aDLA) bDLA,
-                         C.bench "Matrix-matrix multiplication low alloc simd" $ C.nf (multiplyT5 aDLA) bDLA
+                         -- C.bench "Matrix-matrix multiplication" $ C.nf (MF.multiply aDLA) bDLA,
+                         -- C.bench "Matrix-matrix multiplication w transpose" $ C.nf (multiplyT3 aDLA) bDLA,
+                         -- C.bench "Matrix-matrix multiplication basic simd" $ C.nf (multiplyT4 aDLA) bDLA,
+                         -- C.bench "Matrix-matrix multiplication low alloc simd" $ C.nf (multiplyT5 aDLA) bDLA
                          -- C.bench "Repeated matrix-matrix multiplication" $ C.nf (U.sum . (flip M.row) 1 . MF.multiply bDLA . MF.multiply aDLA . MF.multiply aDLA ) bDLA,
                          -- C.bench "Matrix-vector multiplication" $ C.nf (MF.multiplyV aDLA) subDLA,
                          -- C.bench "QR factorization" $ C.nf A.qr aDLA,
-                         -- C.bench "Transpose" $ C.nf MF.transpose aDLA,
-                         ,C.bench "Norm" $ C.nf MF.norm vDLA
-                         ,C.bench "Norm simd" $ C.nf norm_simd6 vDLA
+                         C.bench "Transpose" $ C.nf MF.transpose aDLA
+                         ,C.bench "Transpose 4" $ C.nf transpose4 aDLA
+                         ,C.bench "Transpose 8" $ C.nf transpose8 aDLA
+                         ,C.bench "Transpose 16" $ C.nf transpose16 aDLA
+                         ,C.bench "Transpose 32" $ C.nf transpose32 aDLA
+                         ,C.bench "Transpose 64" $ C.nf transpose64 aDLA
+                         -- ,C.bench "Norm" $ C.nf MF.norm vDLA
+                         -- ,C.bench "Norm simd" $ C.nf norm_simd vDLA
                          -- C.bench "Row" $ C.nf (M.row  aDLA) 0,
                          -- C.bench "Clumn" $ C.nf (M.column  aDLA) 0,
                          -- C.bench "Identity" $ C.nf M.ident n, 
@@ -148,7 +153,7 @@ main = do
 
         C.env (pure (aH', bH', subH', vH')) $ \ ~(aH, bH, subH, vH) ->
             C.bgroup "Hmatrix" [ 
-                             C.bench "Matrix-matrix multiplication" $ C.nf ((<>) aH) bH,
+                             -- C.bench "Matrix-matrix multiplication" $ C.nf ((<>) aH) bH,
                              -- C.bench "Repeated matrix-matrix multiplication" $ C.nf ( H.sumElements . flip (H.?) [1] . (<>) bH . (<>) aH . (<>) aH) bH,
                              -- C.bench "Matrix-vector multiplication" $ C.nf ((H.#>) aH) subH,
                              -- C.bench "QR factorization" $ C.nf H.qr aH,
@@ -197,8 +202,10 @@ main = do
 
     -- print $ (MF.multiply aDLA') bDLA'
     -- print $ (multiplyT3 aDLA') bDLA'
-    print $ norm_simd6 vDLA'
+    print $ norm_simd vDLA'
     print $ MF.norm vDLA'
+
+    print $ transpose4 aDLA' == MF.transpose aDLA'
 
 
 multiplyT3 :: M.Matrix -> M.Matrix -> M.Matrix
@@ -218,14 +225,14 @@ multiplyT4 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
   M.for 0 c2 $ \j -> do
     M.for 0 r1 $ \i -> do
       let 
-        z = norm_simd4 (M.row m1 i) (M.row m2' j)
+        z = dot_simd_cp (M.row m1 i) (M.row m2' j)
       unsafeWrite m3 i j z
   unsafeFreeze m3
     where m2' = MF.transpose m2 
 
 
-norm_simd4 :: U.Vector Double -> U.Vector Double -> Double 
-norm_simd4 v1 v2 = plusHorizontalX4 $ go 0 (VG.length v1'-1)
+dot_simd_cp :: U.Vector Double -> U.Vector Double -> Double 
+dot_simd_cp v1 v2 = plusHorizontalX4 $ go 0 (VG.length v1'-1)
     where
         v1' = unsafeVectorizeUnboxedX4 v1
         v2' = unsafeVectorizeUnboxedX4 v2
@@ -246,7 +253,7 @@ multiplyT5 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
   M.for 0 c2 $ \j -> do
     M.for 0 r1 $ \i -> do
       let 
-        z = norm_simd5 (M.row m1 i) (M.row m2' j)
+        z = dot_simd (M.row m1 i) (M.row m2' j)
       unsafeWrite m3 i j z
   unsafeFreeze m3
     where m2' = MF.transpose m2 
@@ -255,8 +262,8 @@ unD# :: Double -> Double#
 unD# (D# i#) = i#
 
 
--- norm_simd4 :: U.Vector Double -> U.Vector Double -> Double 
--- norm_simd4 v1 v2 = plusHorizontal $ go (broadcastDoubleX4# (int2Double# 0#) ) (len-1)
+-- dot_simd_cp :: U.Vector Double -> U.Vector Double -> Double 
+-- dot_simd_cp v1 v2 = plusHorizontal $ go (broadcastDoubleX4# (int2Double# 0#) ) (len-1)
 --     where
 --         len = VG.length v1 `quot` 4
 
@@ -268,8 +275,8 @@ unD# (D# i#) = i#
 --                 c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
 --                 c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
 
-norm_simd5 :: U.Vector Double -> U.Vector Double -> Double 
-norm_simd5 v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
+dot_simd :: U.Vector Double -> U.Vector Double -> Double 
+dot_simd v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
     where
         len = VG.length v1 `quot` 4
 
@@ -288,8 +295,8 @@ plusHorizontal v = D# (r1+##r2+##r3+##r4)
     (# r1,r2,r3,r4 #) = unpackDoubleX4# v
 
 
-norm_simd6 :: U.Vector Double -> Double 
-norm_simd6 v1 = sqrt $ plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
+norm_simd :: U.Vector Double -> Double 
+norm_simd v1 = sqrt $ plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
     where
         len = VG.length v1 `quot` 4
 
@@ -299,3 +306,113 @@ norm_simd6 v1 = sqrt $ plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) )
                 tot' = plusDoubleX4# tot mul
                 mul = timesDoubleX4# c1 c1
                 c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
+
+-- | Simple for loop.  Counts from /start/ to /end/-1 by +m.
+form :: Monad m => Int -> (Int -> Bool) -> Int -> (Int -> m ()) -> m ()
+form n0 check gap f = loop n0
+  where
+    loop i | check i   = f i >> loop (i+gap)
+           | otherwise = return ()
+{-# INLINE form #-}
+
+transpose4 :: M.Matrix -> M.Matrix
+transpose4 (M.Matrix r0 c0 v0) 
+  = M.Matrix c0 r0 $ runST $ do
+    vec <- UM.unsafeNew (r0*c0)
+
+    form 0 (\i -> i < r0) block $ \i -> do
+ 
+      M.for 0 c0 $ \j -> do
+
+        form 0 (\b -> b < block && i+b < r0) 1 $ \b -> do
+
+          let tmp = v0 `U.unsafeIndex` ((i + b)*c0 + j)
+
+          UM.unsafeWrite vec (j*r0 + i + b) tmp
+
+    U.unsafeFreeze vec
+      where block = 4
+
+transpose8 :: M.Matrix -> M.Matrix
+transpose8 (M.Matrix r0 c0 v0) 
+  = M.Matrix c0 r0 $ runST $ do
+    vec <- UM.unsafeNew (r0*c0)
+
+    form 0 (\i -> i < r0) block $ \i -> do
+ 
+      M.for 0 c0 $ \j -> do
+
+        form 0 (\b -> b < block && i+b < r0) 1 $ \b -> do
+
+          let tmp = v0 `U.unsafeIndex` ((i + b)*c0 + j)
+
+          UM.unsafeWrite vec (j*r0 + i + b) tmp
+
+    U.unsafeFreeze vec
+      where block = 8
+
+transpose16 :: M.Matrix -> M.Matrix
+transpose16 (M.Matrix r0 c0 v0) 
+  = M.Matrix c0 r0 $ runST $ do
+    vec <- UM.unsafeNew (r0*c0)
+
+    form 0 (\i -> i < r0) block $ \i -> do
+ 
+      M.for 0 c0 $ \j -> do
+
+        form 0 (\b -> b < block && i+b < r0) 1 $ \b -> do
+
+          let tmp = v0 `U.unsafeIndex` ((i + b)*c0 + j)
+
+          UM.unsafeWrite vec (j*r0 + i + b) tmp
+
+    U.unsafeFreeze vec
+      where block = 16
+
+transpose32 :: M.Matrix -> M.Matrix
+transpose32 (M.Matrix r0 c0 v0) 
+  = M.Matrix c0 r0 $ runST $ do
+    vec <- UM.unsafeNew (r0*c0)
+
+    form 0 (\i -> i < r0) block $ \i -> do
+ 
+      M.for 0 c0 $ \j -> do
+
+        form 0 (\b -> b < block && i+b < r0) 1 $ \b -> do
+
+          let tmp = v0 `U.unsafeIndex` ((i + b)*c0 + j)
+
+          UM.unsafeWrite vec (j*r0 + i + b) tmp
+
+    U.unsafeFreeze vec
+      where block = 32
+
+transpose64 :: M.Matrix -> M.Matrix
+transpose64 (M.Matrix r0 c0 v0) 
+  = M.Matrix c0 r0 $ runST $ do
+    vec <- UM.unsafeNew (r0*c0)
+
+    form 0 (\i -> i < r0) block $ \i -> do
+ 
+      M.for 0 c0 $ \j -> do
+
+        form 0 (\b -> b < block && i+b < r0) 1 $ \b -> do
+
+          let tmp = v0 `U.unsafeIndex` ((i + b)*c0 + j)
+
+          UM.unsafeWrite vec (j*r0 + i + b) tmp
+
+    U.unsafeFreeze vec
+      where block = 64
+
+-- void transpose(double *dst, const double *src, size_t n, size_t p) noexcept {
+--     THROWS();
+--     size_t block = 32;
+--     for (size_t i = 0; i < n; i += block) {
+--         for(size_t j = 0; j < p; ++j) {
+--             for(size_t b = 0; b < block && i + b < n; ++b) {
+--                 dst[j*n + i + b] = src[(i + b)*p + j];
+--             }
+--         }
+--     }
+-- }
