@@ -1,18 +1,12 @@
 # fastest-matrices
-TODO:
-- automatically parse the results
-- have a cleaner/more abstract interface for the benches
-- add the `Par` benches to Alloc.hs too
-- add `env` to every library
 
 This project benchmarks the following libraries:
 - [hmatrix](http://hackage.haskell.org/package/hmatrix)
 - [dense-linear-algebra](https://hackage.haskell.org/package/dense-linear-algebra) (refered to as DLA henceforth)
 - [numhask](https://hackage.haskell.org/package/numhask)
-- [massiv](http://hackage.haskell.org/package/massiv)
+- [massiv](http://hackage.haskell.org/package/massiv) ("Massiv (Par)" refers to [parallel computation](http://hackage.haskell.org/package/massiv-0.3.2.0/docs/Data-Massiv-Core.html#t:Comp)
 - [matrix](https://hackage.haskell.org/package/matrix-0.3.6.1)
 
-instead of relying on hackage, the project's dependencies fetch the libraries directly from github (see `stack.yaml`).
 
 To run:
 
@@ -22,107 +16,99 @@ To run:
 (runtime)
 `stack build :bench-runtime && stack exec bench-runtime`
 
-Relevant details:
-
-- the implementations of the "naive C" parts can be found in `/naive`. They were compiled with `-O3`
-- the `massiv` benchmarks use the `Primitive` representation, which *seems* to be the fastest among what massiv offers
-- the benchmarked functions from DLA are taken from the `Fast` module when available
-- the `norm` function is called on `n*n` vectors
-
-Formely included:
-- `bed-and-breakfast` (abandoned because too slow)
-- `matrices` (abandoned because too slow, also see https://github.com/kaizhang/matrices/issues/8)
-
 ## Results
 
 ### Runtime
 
 #### Matrix-matrix multiplication
 
-| Library | n = 10 | n = 50 | n = 100 | 
+| Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 3.400 μs | 339.2 μs | 2.377 ms |
-| hmatrix | 1.179 μs | 56.76 μs | 297.6 μs |
-| NumHask | 659.4 μs | 87.64 ms | 310.4 ms |
-| Massiv | 3.350 μs | 266.1 μs | 1.679 ms |
-| Matrix | 10.84 μs | 974.9 μs | 8.329 ms |
+| DLA | 2.65 us | 289.0 us | 2.24 ms |
+| Hmatrix | 1.32 us | 55.8 us | 292.0 us |
+| NumHask | 714.0 us | 63.5 ms | 593.0 ms |
+| Massiv | 12.0 us | 205.0 us | 1.52 ms |
+| Massiv (Par) | 76.1 us | 220.0 us | 866.0 us |
+| Matrix | 12.6 us | 1.1 ms | 8.44 ms |
 | Naive C | 51 us | 323 us | 4.78 ms |
 
 #### Repeated matrix-matrix multiplication
 
 | Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 9.217 μs | 1.050 ms | 7.566 ms |
-| hmatrix | 3.945 μs | 168.5 μs | 905.6 μs |
-| NumHask | 1.060 ms | 139.9 ms | 691.9 ms |
-| Massiv | 7.015 μs | 481.0 μs | 5.050 ms |
+| DLA | 8.25 us | 852.0 us | 6.92 ms |
+| Hmatrix | 5.41 us | 170.0 us | 889.0 us |
+| NumHask | 1.46 ms | 152.0 ms | 1.42 s |
+| Massiv | 38.9 us | 629.0 us | 4.48 ms |
+| Massiv (Par) | 358.0 us | 816.0 us | 2.8 ms |
 
 #### Matrix-vector multiplication
 
 | Library | n = 10 | n = 50 | n = 100 |
-| --- | --- | --- | --- | 
-| DLA | 257.7 ns | 5.904 μs | 21.36 μs | 
-| hmatrix | 450.3 ns | 1.867 μs | 11.54 μs | 
+| --- | --- | --- | --- |
+| DLA | 302.0 ns | 4.12 us | 16.1 us |
+| Hmatrix | 706.0 ns | 2.27 us | 11.1 us |
 
 #### QR factorization
 
 | Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 3.050 μs | 312.8 μs | 2.375 ms |
-| hmatrix | 68.20 μs | 5.653 ms | 46.28 ms |
+| DLA | 3.32 us | 233.0 us | 1.7 ms |
+| Hmatrix | 94.0 us | 6.62 ms | 60.3 ms |
 
 #### Transpose
 
 | Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 1.285 μs | 29.84 μs | 130.8 μs | 
-| hmatrix | 12.02 ns | 10.14 ns | 11.93 ns | 
-| NumHask | 446.9 ns | 10.85 μs | 35.28 μs | 
-| Massiv | 171.0 ns | 3.666 μs | 12.81 μs | 
-| Matrix | 2.267 μs | 58.81 μs | 355.8 μs | 
+| DLA | 330.0 ns | 8.46 us | 25.9 us |
+| Hmatrix | 24.9 ns | 24.4 ns | 17.6 ns |
+| NumHask | 309.0 ns | 7.29 us | 28.1 us |
+| Massiv | 7.29 us | 35.7 us | 122.0 us |
+| Matrix | 4.58 us | 130.0 us | 699.0 us |
 
 #### Norm
-
 | Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 154.3 ns | 3.716 μs | 15.83 μs |
-| hmatrix | 99.41 ns | 824.0 ns | 3.579 μs |
-| NumHask | 20.76 μs | 605.9 μs | 3.428 ms |
-| Massiv | 168.6 ns | 3.325 μs | 19.51 μs |
+| DLA | 189.0 ns | 4.15 us | 16.8 us |
+| Hmatrix | 285.0 ns | 1.15 us | 4.32 us |
+| NumHask | 40.3 us | 1.79 ms | 9.72 ms |
+| Massiv | 128.0 ns | 3.3 us | 13.0 us |
 | Naive C | 350 ns | 12.65 us | 40.96 μs |
 
 #### Row
 
 | Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 16.01 ns | 16.32 ns | 17.05 ns |
-| hmatrix | 704.6 ns | 696.4 ns | 739.7 ns |
-| NumHask | 41.40 ns | 175.1 ns | 377.8 ns |
-| Massiv | 43.43 ns | 74.67 ns | 157.6 ns |
-| Matrix | 42.94 ns | 185.9 ns | 340.5 ns |
+| DLA | 26.4 ns | 19.5 ns | 19.5 ns |
+| Hmatrix | 1.43 us | 1.63 us | 1.7 us |
+| NumHask | 39.4 ns | 170.0 ns | 305.0 ns |
+| Massiv | 3.97 us | 5.08 us | 4.74 us |
+| Matrix | 40.9 ns | 167.0 ns | 310.0 ns |
 
 #### Column
 
-| Library | n = 10 | n = 50 | n = 100 | 
-| --- | --- | --- | --- | 
-| DLA | 38.04 ns | 134.5 ns | 195.2 ns |
-| hmatrix | 817.4 ns | 811.2 ns | 1.078 μs |
-| NumHask | 192.4 ns | 1.151 μs | 1.708 μs |
-| Matrix | 222.0 ns | 887.0 ns  | 1.954 μs |
+| Library | n = 10 | n = 50 | n = 100 |
+| --- | --- | --- | --- |
+| DLA | 61.0 ns | 279.0 ns | 295.0 ns |
+| Hmatrix | 1.43 us | 1.7 us | 1.84 us |
+| NumHask | 221.0 ns | 1.04 us | 2.38 us |
+| Massiv | 4.63 us | 5.04 us | 5.04 us |
+| Matrix | 350.0 ns | 1.59 us | 3.09 us |
 
 #### Identity
 
 | Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 90.64 ns | 1.021 μs | 2.841 μs |
-| hmatrix | 1.804 μs | 28.01 μs | 150.9 μs |
-| Matrix | 1.845 μs | 38.73 μs | 210.5 μs |
+| DLA | 157.0 ns | 4.75 us | 11.2 us |
+| Hmatrix | 2.31 us | 34.5 us | 132.0 us |
+| Matrix | 2.94 us | 65.9 us | 492.0 us |
+
 #### Diagonal
 
 | Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 87.47 ns | 839.2 ns | 2.816 μs |
-| hmatrix | 1.665 μs | 27.49 μs | 143.3 μs |
+| DLA | 124.0 ns | 5.04 us | 11.2 us |
+| Hmatrix | 2.15 us | 33.7 us | 132.0 us |
 
 ----------------------------------------------------------------------------------
 ### Allocation
@@ -191,3 +177,18 @@ Formely included:
 | hmatrix | 3,208 | 66,440 | 252,440 |
 | Matrix | 5,752 | 139,848 | 559,504 |
 
+Relevant details:
+
+- the implementations of the "naive C" parts can be found in `/naive`. They were compiled with `-O3`
+- the `massiv` benchmarks use the `Primitive` representation, which *seems* to be the fastest among what massiv offers
+- the benchmarked functions from DLA are taken from the `Fast` module when available
+- the `norm` function is called on `n*n` vectors
+- instead of relying on hackage, the project's dependencies fetch the libraries directly from github (see `stack.yaml`).
+
+Formely included:
+- `bed-and-breakfast` (abandoned because too slow)
+- `matrices` (abandoned because too slow, also see https://github.com/kaizhang/matrices/issues/8)
+
+
+TODO:
+- have a cleaner/more abstract interface for the benches
