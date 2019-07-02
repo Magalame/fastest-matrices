@@ -33,8 +33,8 @@ import qualified System.Random.MWC as Mwc
 
 import qualified Criterion.Main as C
 
-#define N 1000
-#define N2 1000000
+#define N 10
+#define N2 100
 
 n :: Int
 n = N
@@ -115,7 +115,7 @@ main = do
                          C.bench "repeated multiplication" $ C.nf (U.sum . (flip M.row) 1 . MF.multiply bDLA . MF.multiply aDLA . MF.multiply aDLA ) bDLA,
                          C.bench "multiplicationV" $ C.nf (MF.multiplyV aDLA) subDLA,
                          C.bench "qr factorization" $ C.nf A.qr aDLA,
-                         C.bench "transpose" $ C.nf M.transpose aDLA,
+                         C.bench "transpose" $ C.nf MF.transpose aDLA,
                          C.bench "norm" $ C.nf MF.norm vDLA,
                          C.bench "row" $ C.nf (M.row  aDLA) 0,
                          C.bench "column" $ C.nf (M.column  aDLA) 0,
