@@ -60,11 +60,11 @@ To run:
 
 | Library | n = 10 | n = 50 | n = 100 |
 | --- | --- | --- | --- |
-| DLA | 1.23 us | 29.4 us | 107.0 us |
-| Hmatrix | 17.0 ns | 16.4 ns | 18.4 ns |
-| NumHask | 297.0 ns | 6.97 us | 28.2 us |
-| Massiv | 6.03 us | 33.1 us | 117.0 us |
-| Matrix | 3.84 us | 100.0 us | 702.0 us |
+| DLA | 330.0 ns | 8.46 us | 25.9 us |
+| Hmatrix | 24.9 ns | 24.4 ns | 17.6 ns |
+| NumHask | 309.0 ns | 7.29 us | 28.1 us |
+| Massiv | 7.29 us | 35.7 us | 122.0 us |
+| Matrix | 4.58 us | 130.0 us | 699.0 us |
 
 #### Norm
 | Library | n = 10 | n = 50 | n = 100 |
