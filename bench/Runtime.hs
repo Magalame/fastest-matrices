@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE CPP #-}
-
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -46,103 +45,40 @@ import qualified Data.Matrix as DMX
 -- massiv
 import qualified Data.Massiv.Array as MA
 
-import qualified System.Random.MWC as Mwc
+
 
 import qualified Criterion.Main as C
 
-#define N 100
-#define N2 10000
+import Debug.Trace
+import Control.DeepSeq
 
-n :: Int
-n = N
 
-vectorGen :: IO (Vector Double)
-vectorGen =  do 
-    gen <- Mwc.create
-    Mwc.uniformVector gen (n*n)
-
-matrixDLA :: IO M.Matrix
-matrixDLA = do
-    vec <- vectorGen
-    return $ M.Matrix n n vec
-
-matrixH :: IO (H.Matrix H.R)
-matrixH = do
-    vec <- vectorGen
-    return $ (n H.>< n) $ U.toList $ vec 
-
-identH :: Int -> H.Matrix Double
-identH = H.ident
-
-identDMX :: Int -> DMX.Matrix Double
-identDMX = DMX.identity
-
-elemZero :: Double -> Double
-elemZero = const 0
-
-elemSqr :: Double -> Double
-elemSqr x = x*x
-
-mapH :: (Double -> Double) -> H.Matrix Double -> H.Matrix Double
-mapH = H.cmap
+import Common
 
 main :: IO ()
 main = do 
-
-    vDLA' <- vectorGen
-    uDLA' <- vectorGen
-
-    let 
-
-    --
-      subDLA' = U.take n vDLA'
-      aDLA' = M.Matrix n n vDLA'
-      bDLA' = M.Matrix n n uDLA'
-    
-    --
-      vList = U.toList vDLA'
-      uList = U.toList uDLA'
-    
-    --
-      aH' = (n H.>< n) vList
-      bH' = (n H.>< n) uList
-
-      subH' = H.fromList . take n $ vList
-      vH' = H.fromList vList
-
-    --
-      aNH' = NP.fromList vList :: NH.Array V.Vector '[N, N] Double
-      bNH' = NP.fromList uList :: NH.Array V.Vector '[N, N] Double
-
-      vNH' = NP.fromList vList :: NH.Array V.Vector '[N2] Double
-
-    --
-      aDMX' = DMX.fromList n n vList
-      bDMX' = DMX.fromList n n uList
-
-    --
-      vMA' = MA.fromList MA.Seq vList :: MA.Array MA.P MA.Ix1 Double
-      aMA' = MA.resize' (MA.Sz (n MA.:. n)) vMA' :: MA.Array MA.P MA.Ix2 Double
-      bMA' = MA.resize' (MA.Sz (n MA.:. n)) $ MA.fromList MA.Seq uList :: MA.Array MA.P MA.Ix2 Double
 
     C.defaultMain [ 
         C.env (pure (aDLA', bDLA', subDLA', vDLA')) $ \ ~(aDLA, bDLA, subDLA, vDLA) ->
             C.bgroup "DLA" [ 
                          -- C.bench "Matrix-matrix multiplication" $ C.nf (MF.multiply aDLA) bDLA,
                          -- C.bench "Matrix-matrix multiplication w transpose" $ C.nf (multiplyT3 aDLA) bDLA,
-                         -- C.bench "Matrix-matrix multiplication basic simd" $ C.nf (multiplyT4 aDLA) bDLA,
-                         -- C.bench "Matrix-matrix multiplication low alloc simd" $ C.nf (multiplyT5 aDLA) bDLA
+                         -- C.bench "Matrix-matrix multiplication simd 4" $ C.nf (multiplyT4 aDLA) bDLA
+                          C.bench "Matrix-matrix multiplication simd opti" $ C.nf (multiplyT5 aDLA) bDLA
+                          ,C.bench "Matrix-matrix multiplication simd" $ C.nf (multiplyT6 aDLA) bDLA
                          -- C.bench "Repeated matrix-matrix multiplication" $ C.nf (U.sum . (flip M.row) 1 . MF.multiply bDLA . MF.multiply aDLA . MF.multiply aDLA ) bDLA,
                          -- C.bench "Matrix-vector multiplication" $ C.nf (MF.multiplyV aDLA) subDLA,
                          -- C.bench "QR factorization" $ C.nf A.qr aDLA,
-                         C.bench "Transpose" $ C.nf MF.transpose aDLA
-                         ,C.bench "Transpose 4" $ C.nf transpose4 aDLA
-                         ,C.bench "Transpose 8" $ C.nf transpose8 aDLA
-                         ,C.bench "Transpose 16" $ C.nf transpose16 aDLA
-                         ,C.bench "Transpose 32" $ C.nf transpose32 aDLA
-                         ,C.bench "Transpose 64" $ C.nf transpose64 aDLA
-                         -- ,C.bench "Norm" $ C.nf MF.norm vDLA
-                         -- ,C.bench "Norm simd" $ C.nf norm_simd vDLA
+                         -- ,C.bench "Transpose" $ C.nf MF.transpose aDLA
+                         -- C.bench "Transpose 8" $ C.nf transpose8 aDLA,
+                         -- C.bench "Transpose 8'" $ C.nf transpose8' aDLA
+                         -- ,C.bench "Norm2" $ C.nf (dot_simd vDLA) vDLA
+                         -- ,C.bench "Norm3" $ C.nf (dot_simd_mul vDLA vDLA 2500) 0
+                         ,C.bench "Norm" $ C.nf MF.norm vDLA
+                         ,C.bench "Norm simd 4" $ C.nf norm_simd_bis vDLA
+                         ,C.bench "Norm simd full" $ C.nf norm_simd vDLA
+                         -- ,C.bench "Norm simd" $ C.nf (dot_simd vDLA) vDLA
+                         -- C.bench "Norm simd 4" $ C.nf (dot_simd_bis vDLA) vDLA
                          -- C.bench "Row" $ C.nf (M.row  aDLA) 0,
                          -- C.bench "Clumn" $ C.nf (M.column  aDLA) 0,
                          -- C.bench "Identity" $ C.nf M.ident n, 
@@ -153,12 +89,13 @@ main = do
 
         C.env (pure (aH', bH', subH', vH')) $ \ ~(aH, bH, subH, vH) ->
             C.bgroup "Hmatrix" [ 
-                             -- C.bench "Matrix-matrix multiplication" $ C.nf ((<>) aH) bH,
+                             C.bench "Matrix-matrix multiplication" $ C.nf ((<>) aH) bH
                              -- C.bench "Repeated matrix-matrix multiplication" $ C.nf ( H.sumElements . flip (H.?) [1] . (<>) bH . (<>) aH . (<>) aH) bH,
                              -- C.bench "Matrix-vector multiplication" $ C.nf ((H.#>) aH) subH,
                              -- C.bench "QR factorization" $ C.nf H.qr aH,
                              -- C.bench "Transpose" $ C.nf H.tr aH,
-                             C.bench "Norm" $ C.nf H.norm_2 vH
+                             -- C.bench "Dot" $ C.nf (vH H.<.>) vH
+                             ,C.bench "Norm" $ C.nf H.norm_2 vH
                              -- C.bench "Row" $ C.nf ((H.?) aH) [0],
                              -- C.bench "Column" $ C.nf ((H.¿) aH) [0], 
                              -- C.bench "Identity" $ C.nf identH n,
@@ -201,11 +138,13 @@ main = do
 
 
     -- print $ (MF.multiply aDLA') bDLA'
-    -- print $ (multiplyT3 aDLA') bDLA'
-    print $ norm_simd vDLA'
+    -- print $ (multiplyT5  aDLA') bDLA'
+    print $ norm_simd_bis vDLA'
+    print $ norm_simd vDLA' 
     print $ MF.norm vDLA'
+    print $ H.norm_2 vH'
+    -- print $ transpose8' aDLA' == M.transpose aDLA'
 
-    print $ transpose4 aDLA' == MF.transpose aDLA'
 
 
 multiplyT3 :: M.Matrix -> M.Matrix -> M.Matrix
@@ -219,36 +158,61 @@ multiplyT3 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
   unsafeFreeze m3
     where m2' = MF.transpose m2 
 
+-- multiplyT4 :: M.Matrix -> M.Matrix -> M.Matrix
+-- multiplyT4 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
+--   m3 <- unsafeNew r1 c2
+--   M.for 0 c2 $ \j -> do
+--     M.for 0 r1 $ \i -> do
+--       let 
+--         z = dot_simd_cp (M.row m1 i) (M.row m2' j)
+--       unsafeWrite m3 i j z
+--   unsafeFreeze m3
+--     where m2' = MF.transpose m2 
+
+
+-- dot_simd_cp :: U.Vector Double -> U.Vector Double -> Double 
+-- dot_simd_cp v1 v2 = plusHorizontalX4 $ go 0 (VG.length v1'-1)
+--     where
+--         v1' = unsafeVectorizeUnboxedX4 v1
+--         v2' = unsafeVectorizeUnboxedX4 v2
+
+--         go tot (-1) = tot
+--         go tot i = go tot' (i-1)
+--             where
+--                 tot' = tot+mul
+--                 mul = c1*c2
+--                 c1 = v1' `VG.unsafeIndex` i
+--                 c2 = v2' `VG.unsafeIndex` i
+
 multiplyT4 :: M.Matrix -> M.Matrix -> M.Matrix
 multiplyT4 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
   m3 <- unsafeNew r1 c2
   M.for 0 c2 $ \j -> do
     M.for 0 r1 $ \i -> do
       let 
-        z = dot_simd_cp (M.row m1 i) (M.row m2' j)
+        z = dot_simd_bis (M.row m1 i) (M.row m2' j)
+      unsafeWrite m3 i j z
+  unsafeFreeze m3
+    where m2' = MF.transpose m2 
+
+multiplyT5 :: M.Matrix -> M.Matrix -> M.Matrix
+multiplyT5 m1@(M.Matrix r1 c1 _) m2@(M.Matrix _ c2 _) = runST $ do
+  let totLen = c1
+      len = totLen `quot` 4
+      rest =  4*len
+        
+  m3 <- unsafeNew r1 c2
+  M.for 0 c2 $ \j -> do
+    M.for 0 r1 $ \i -> do
+      let 
+        z = dot_simd_mul (M.row m1 i) (M.row m2' j) len rest 
       unsafeWrite m3 i j z
   unsafeFreeze m3
     where m2' = MF.transpose m2 
 
 
-dot_simd_cp :: U.Vector Double -> U.Vector Double -> Double 
-dot_simd_cp v1 v2 = plusHorizontalX4 $ go 0 (VG.length v1'-1)
-    where
-        v1' = unsafeVectorizeUnboxedX4 v1
-        v2' = unsafeVectorizeUnboxedX4 v2
-
-        go tot (-1) = tot
-        go tot i = go tot' (i-1)
-            where
-                tot' = tot+mul
-                mul = c1*c2
-                c1 = v1' `VG.unsafeIndex` i
-                c2 = v2' `VG.unsafeIndex` i
-
-
-
-multiplyT5 :: M.Matrix -> M.Matrix -> M.Matrix
-multiplyT5 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
+multiplyT6 :: M.Matrix -> M.Matrix -> M.Matrix
+multiplyT6 m1@(M.Matrix r1 c1 _) m2@(M.Matrix _ c2 _) = runST $ do
   m3 <- unsafeNew r1 c2
   M.for 0 c2 $ \j -> do
     M.for 0 r1 $ \i -> do
@@ -258,8 +222,10 @@ multiplyT5 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
   unsafeFreeze m3
     where m2' = MF.transpose m2 
 
+
 unD# :: Double -> Double#
 unD# (D# i#) = i#
+
 
 
 -- dot_simd_cp :: U.Vector Double -> U.Vector Double -> Double 
@@ -275,8 +241,11 @@ unD# (D# i#) = i#
 --                 c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
 --                 c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
 
-dot_simd :: U.Vector Double -> U.Vector Double -> Double 
-dot_simd v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
+norm_simd_bis :: U.Vector Double -> Double
+norm_simd_bis v = sqrt $ dot_simd_bis v v 
+
+dot_simd_bis :: U.Vector Double -> U.Vector Double -> Double 
+dot_simd_bis v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
     where
         len = VG.length v1 `quot` 4
 
@@ -289,23 +258,100 @@ dot_simd v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-
                 c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
 
 
-plusHorizontal :: DoubleX4# -> Double
-plusHorizontal v = D# (r1+##r2+##r3+##r4)
-  where
-    (# r1,r2,r3,r4 #) = unpackDoubleX4# v
-
-
-norm_simd :: U.Vector Double -> Double 
-norm_simd v1 = sqrt $ plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
+dot_simd :: U.Vector Double -> U.Vector Double -> Double 
+dot_simd v1 v2 = remainder + plusHorizontal base
+                 -- remainder + plusHorizontal base
     where
-        len = VG.length v1 `quot` 4
+        -- (len,rest) = VG.length v1 `quotRem` 4
+        totLen = VG.length v1
+        len = totLen `quot` 4
+        rest = 4*len
+        
+        zero_local# = int2Double# 0#
 
         go tot (-1) = tot
         go tot i = go tot' (i-1)
             where
                 tot' = plusDoubleX4# tot mul
-                mul = timesDoubleX4# c1 c1
+                mul = timesDoubleX4# c1 c2
                 c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
+                c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
+
+        base = go (broadcastDoubleX4# zero_local#) (len-1)
+
+        -- remainder | rest == 0 = (broadcastDoubleX4# zero#)
+
+        --           | rest == 1 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), zero#, zero#, zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), zero#, zero#, zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        --           | rest == 2 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), unD# $ v1 `U.unsafeIndex` (len*4 + 1), zero#, zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), unD# $ v2 `U.unsafeIndex` (len*4 + 1), zero#, zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        --           | rest == 3 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), unD# $ v1 `U.unsafeIndex` (len*4 + 1), unD# $ v1 `U.unsafeIndex` (len*4 + 2), zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), unD# $ v2 `U.unsafeIndex` (len*4 + 1), unD# $ v2 `U.unsafeIndex` (len*4 + 2), zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        remainder = U.sum $ U.zipWith (*) (U.drop rest v1) (U.drop rest v2)
+
+        -- total = plusDoubleX4# base remainder
+
+dot_simd_mul :: U.Vector Double -> U.Vector Double -> Int -> Int -> Double 
+dot_simd_mul !v1 !v2 !len !rest = remainder + plusHorizontal base
+                 -- remainder + plusHorizontal base
+    where
+        -- (len,rest) = VG.length v1 `quotRem` 4
+        
+        zeroVec# = broadcastDoubleX4# (int2Double# 0#)
+
+        go !tot (-1) = tot
+        go !tot !i = go tot' (i-1)
+            where
+                tot' = plusDoubleX4# tot mul
+                mul = timesDoubleX4# c1 c2
+                c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
+                c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
+
+        base = go zeroVec# (len-1)
+
+        -- remainder | rest == 0 = (broadcastDoubleX4# zero#)
+
+        --           | rest == 1 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), zero#, zero#, zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), zero#, zero#, zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        --           | rest == 2 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), unD# $ v1 `U.unsafeIndex` (len*4 + 1), zero#, zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), unD# $ v2 `U.unsafeIndex` (len*4 + 1), zero#, zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        --           | rest == 3 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), unD# $ v1 `U.unsafeIndex` (len*4 + 1), unD# $ v1 `U.unsafeIndex` (len*4 + 2), zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), unD# $ v2 `U.unsafeIndex` (len*4 + 1), unD# $ v2 `U.unsafeIndex` (len*4 + 2), zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        remainder = U.sum $ U.zipWith (*) (U.drop rest v1) (U.drop rest v2)
+
+        -- total = plusDoubleX4# base remainder
+
+plusHorizontal :: DoubleX4# -> Double
+plusHorizontal v = D# (r1+##r2+##r3+##r4)
+  where
+    !(# r1,r2,r3,r4 #) = unpackDoubleX4# v
+
+norm_simd :: U.Vector Double -> Double 
+norm_simd v1 = sqrt $ dot_simd v1 v1
+
+-- norm_simd :: U.Vector Double -> Double 
+-- norm_simd v1 = sqrt $ plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
+--     where
+--         len = VG.length v1 `quot` 4
+
+--         go tot (-1) = tot
+--         go tot i = go tot' (i-1)
+--             where
+--                 tot' = plusDoubleX4# tot mul
+--                 mul = timesDoubleX4# c1 c1
+--                 c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
 
 -- | Simple for loop.  Counts from /start/ to /end/-1 by +m.
 form :: Monad m => Int -> (Int -> Bool) -> Int -> (Int -> m ()) -> m ()
@@ -314,24 +360,6 @@ form n0 check gap f = loop n0
     loop i | check i   = f i >> loop (i+gap)
            | otherwise = return ()
 {-# INLINE form #-}
-
-transpose4 :: M.Matrix -> M.Matrix
-transpose4 (M.Matrix r0 c0 v0) 
-  = M.Matrix c0 r0 $ runST $ do
-    vec <- UM.unsafeNew (r0*c0)
-
-    form 0 (\i -> i < r0) block $ \i -> do
- 
-      M.for 0 c0 $ \j -> do
-
-        form 0 (\b -> b < block && i+b < r0) 1 $ \b -> do
-
-          let tmp = v0 `U.unsafeIndex` ((i + b)*c0 + j)
-
-          UM.unsafeWrite vec (j*r0 + i + b) tmp
-
-    U.unsafeFreeze vec
-      where block = 4
 
 transpose8 :: M.Matrix -> M.Matrix
 transpose8 (M.Matrix r0 c0 v0) 
@@ -348,11 +376,13 @@ transpose8 (M.Matrix r0 c0 v0)
 
           UM.unsafeWrite vec (j*r0 + i + b) tmp
 
-    U.unsafeFreeze vec
-      where block = 8
+          -- traceM $ (++) "index:" $ show (j,i+b)
 
-transpose16 :: M.Matrix -> M.Matrix
-transpose16 (M.Matrix r0 c0 v0) 
+    U.unsafeFreeze vec
+      where block = 2
+
+transpose8' :: M.Matrix -> M.Matrix
+transpose8' (M.Matrix r0 c0 v0) 
   = M.Matrix c0 r0 $ runST $ do
     vec <- UM.unsafeNew (r0*c0)
 
@@ -362,48 +392,16 @@ transpose16 (M.Matrix r0 c0 v0)
 
         form 0 (\b -> b < block && i+b < r0) 1 $ \b -> do
 
-          let tmp = v0 `U.unsafeIndex` ((i + b)*c0 + j)
+          let tmp = v0 `U.unsafeIndex` (j*r0 + i + b)
 
-          UM.unsafeWrite vec (j*r0 + i + b) tmp
+          UM.unsafeWrite vec  ((i + b)*c0 + j) tmp
 
-    U.unsafeFreeze vec
-      where block = 16
-
-transpose32 :: M.Matrix -> M.Matrix
-transpose32 (M.Matrix r0 c0 v0) 
-  = M.Matrix c0 r0 $ runST $ do
-    vec <- UM.unsafeNew (r0*c0)
-
-    form 0 (\i -> i < r0) block $ \i -> do
- 
-      M.for 0 c0 $ \j -> do
-
-        form 0 (\b -> b < block && i+b < r0) 1 $ \b -> do
-
-          let tmp = v0 `U.unsafeIndex` ((i + b)*c0 + j)
-
-          UM.unsafeWrite vec (j*r0 + i + b) tmp
+          traceM $ (++) "index:" $ show ((i + b),j)
 
     U.unsafeFreeze vec
-      where block = 32
+      where block = 2
 
-transpose64 :: M.Matrix -> M.Matrix
-transpose64 (M.Matrix r0 c0 v0) 
-  = M.Matrix c0 r0 $ runST $ do
-    vec <- UM.unsafeNew (r0*c0)
 
-    form 0 (\i -> i < r0) block $ \i -> do
- 
-      M.for 0 c0 $ \j -> do
-
-        form 0 (\b -> b < block && i+b < r0) 1 $ \b -> do
-
-          let tmp = v0 `U.unsafeIndex` ((i + b)*c0 + j)
-
-          UM.unsafeWrite vec (j*r0 + i + b) tmp
-
-    U.unsafeFreeze vec
-      where block = 64
 
 -- void transpose(double *dst, const double *src, size_t n, size_t p) noexcept {
 --     THROWS();

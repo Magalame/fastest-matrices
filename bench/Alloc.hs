@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -47,7 +48,7 @@ import qualified System.Random.MWC as Mwc
 import qualified Weigh as W
 
 n :: Int
-n = 4
+n = 100
 
 vectorGen :: IO (Vector Double)
 vectorGen =  do 
@@ -124,46 +125,22 @@ main = do
 
 
     W.mainWith (do 
-               W.func "DLA - multiplication" (MF.multiply aDLA) bDLA
-               W.func "DLA - multiplication2" (multiplyT3 aDLA) bDLA
-               W.func "DLA - multiplication3" (multiplyT4 aDLA) bDLA
-               W.func "DLA - qr factorization" A.qr aDLA
-               W.func "DLA - transpose" M.transpose aDLA
-               W.func "DLA - norm" MF.norm vDLA
-               W.func "DLA - row" (M.row  aDLA) 0
-               W.func "DLA - column" (M.column  aDLA) 0
-               W.func "DLA - identity" M.ident n
+               -- W.func "DLA - multiplication" (MF.multiply aDLA) bDLA
+               -- W.func "DLA - multiplication2" (multiplyT3 aDLA) bDLA
+               -- W.func "DLA - multiplication3" (multiplyT4 aDLA) bDLA
+               -- W.func "DLA - multiplication4" (multiplyT4 aDLA) bDLA
 
-               W.func "Hmatrix - multiplication" ((<>) aH) bH
-               W.func "Hmatrix - qr factorization" H.qr aH
-               W.func "Hmatrix - transpose" H.tr aH
+               -- W.func "DLA - norm" MF.norm vDLA
+               W.func "DLA - dot_simd4" (dot_simd4 vDLA) vDLA
+               -- W.func "DLA - norm_simd" norm_simd vDLA
+
+               -- W.func "Hmatrix - multiplication" ((<>) aH) bH
                W.func "Hmatrix - norm" H.norm_2 vH
-               W.func "Hmatrix - row" ((H.?) aH) [0]
-               W.func "Hmatrix - column" ((H.¿) aH) [0]
-               W.func "Hmatrix - identity" identH n
 
-               W.func "NumHask Array - multiplication" (NH.mmult aNH) bNH
-               W.func "NumHask Array - transpose" NH.transpose aNH
-               W.func "NumHask Array - norm" (sqrt . (NP.<.> vNH)) vNH
-               W.func "NumHask Array - row" (NH.row (NP.Proxy :: NP.Proxy 0)) aNH
-               W.func "NumHask Array - column" (NH.col (NP.Proxy :: NP.Proxy 0)) aNH
-
-               W.func "Massiv - multiplication" ((MA.|*|) aMA) bMA
-               W.func "Massiv - multiplication (Par)" ((MA.|*|) (MA.setComp MA.Par aMA)) bMA
-               W.func "Massiv - norm" (sqrt . MA.foldlS (+) 0 . MA.zipWith (*) vMA) vMA
-               W.func "Massiv - transpose" (MA.computeAs MA.P . MA.transpose) aMA
-               W.func "Massiv - row" (MA.computeAs MA.P . (MA.!>) aMA) 0
-               W.func "Massiv - column" (MA.computeAs MA.P . (MA.<!) aMA) 0
-
-               W.func "matrix - multiplication" (DMX.multStrassenMixed aDMX) bDMX
-               W.func "matrix - transpose" DMX.transpose aDMX
-               W.func "matrix - row" (DMX.getRow 1) aDMX
-               W.func "matrix - column" (DMX.getCol 1) aDMX
-               W.func "matrix - identity" identDMX n
                )
 
-    print $ (MF.multiply aDLA) bDLA
-    print $ (multiplyT4 aDLA) bDLA
+    -- print $ (MF.multiply aDLA) bDLA
+    -- print $ (multiplyT4 aDLA) bDLA
 
 multiplyT3 :: M.Matrix -> M.Matrix -> M.Matrix
 multiplyT3 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
@@ -182,7 +159,7 @@ multiplyT4 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
   M.for 0 c2 $ \j -> do
     M.for 0 r1 $ \i -> do
       let 
-        z = norm_simd4 (M.row m1 i) (M.row m2' j)
+        z = dot_simd4 (M.row m1 i) (M.row m2' j)
       unsafeWrite m3 i j z
   unsafeFreeze m3
     where m2' = MF.transpose m2 
@@ -190,22 +167,29 @@ multiplyT4 m1@(M.Matrix r1 _ _) m2@(M.Matrix _ c2 _) = runST $ do
 unD# :: Double -> Double#
 unD# (D# i#) = i#
 
+multiplyT5 :: M.Matrix -> M.Matrix -> M.Matrix
+multiplyT5 m1@(M.Matrix r1 c1 _) m2@(M.Matrix _ c2 _) = runST $ do
+  let totLen = c1
+      len = totLen `quot` 4
+      rest =  4*len
+        
+  m3 <- unsafeNew r1 c2
+  M.for 0 c2 $ \j -> do
+    M.for 0 r1 $ \i -> do
+      let 
+        z = dot_simd_mul (M.row m1 i) (M.row m2' j) len rest 
+      unsafeWrite m3 i j z
+  unsafeFreeze m3
+    where m2' = MF.transpose m2 
 
--- norm_simd4 :: U.Vector Double -> U.Vector Double -> Double 
--- norm_simd4 v1 v2 = plusHorizontal $ go (broadcastDoubleX4# (int2Double# 0#) ) (len-1)
---     where
---         len = VG.length v1 `quot` 4
+norm_simd :: U.Vector Double -> Double 
+norm_simd v1 = sqrt $ dot_simd v1 v1
 
---         go tot (-1) = tot
---         go tot i = go tot' (i-1)
---             where
---                 tot' = plusDoubleX4# tot mul
---                 mul = timesDoubleX4# c1 c2
---                 c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
---                 c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
+norm_simd4 :: U.Vector Double -> Double
+norm_simd4 v = sqrt $ dot_simd4 v v
 
-norm_simd4 :: U.Vector Double -> U.Vector Double -> Double 
-norm_simd4 v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
+dot_simd4 :: U.Vector Double -> U.Vector Double -> Double 
+dot_simd4 v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (len-1))
     where
         len = VG.length v1 `quot` 4
 
@@ -218,7 +202,82 @@ norm_simd4 v1 v2 = plusHorizontal (go (broadcastDoubleX4# (int2Double# 0#) ) (le
                 c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
 
 
+dot_simd_mul :: U.Vector Double -> U.Vector Double -> Int -> Int -> Double 
+dot_simd_mul !v1 !v2 !len !rest = remainder + plusHorizontal base
+                 -- remainder + plusHorizontal base
+    where
+        -- (len,rest) = VG.length v1 `quotRem` 4
+        
+        zero# = int2Double# 0#
+
+        go tot (-1) = tot
+        go tot i = go tot' (i-1)
+            where
+                tot' = plusDoubleX4# tot mul
+                mul = timesDoubleX4# c1 c2
+                c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
+                c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
+
+        base = go (broadcastDoubleX4# zero#) (len-1)
+
+        -- remainder | rest == 0 = (broadcastDoubleX4# zero#)
+
+        --           | rest == 1 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), zero#, zero#, zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), zero#, zero#, zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        --           | rest == 2 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), unD# $ v1 `U.unsafeIndex` (len*4 + 1), zero#, zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), unD# $ v2 `U.unsafeIndex` (len*4 + 1), zero#, zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        --           | rest == 3 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), unD# $ v1 `U.unsafeIndex` (len*4 + 1), unD# $ v1 `U.unsafeIndex` (len*4 + 2), zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), unD# $ v2 `U.unsafeIndex` (len*4 + 1), unD# $ v2 `U.unsafeIndex` (len*4 + 2), zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        remainder = U.sum $ U.zipWith (*) (U.drop rest v1) (U.drop rest v2)
+
+        -- total = plusDoubleX4# base remainder
+
+dot_simd :: U.Vector Double -> U.Vector Double -> Double 
+dot_simd v1 v2 = remainder + plusHorizontal base
+                 -- remainder + plusHorizontal base
+    where
+        -- (len,rest) = VG.length v1 `quotRem` 4
+        totLen = VG.length v1
+        len = totLen `quot` 4
+        rest = 4*len
+        
+        zero# = int2Double# 0#
+
+        go tot (-1) = tot
+        go tot i = go tot' (i-1)
+            where
+                tot' = plusDoubleX4# tot mul
+                mul = timesDoubleX4# c1 c2
+                c1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (i*4 + 0), unD# $ v1 `U.unsafeIndex` (i*4 + 1), unD# $ v1 `U.unsafeIndex` (i*4 + 2), unD# $ v1 `U.unsafeIndex` (i*4 + 3) #)
+                c2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (i*4 + 0), unD# $ v2 `U.unsafeIndex` (i*4 + 1), unD# $ v2 `U.unsafeIndex` (i*4 + 2), unD# $ v2 `U.unsafeIndex` (i*4 + 3) #)
+
+        base = go (broadcastDoubleX4# zero#) (len-1)
+
+        -- remainder | rest == 0 = (broadcastDoubleX4# zero#)
+
+        --           | rest == 1 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), zero#, zero#, zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), zero#, zero#, zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        --           | rest == 2 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), unD# $ v1 `U.unsafeIndex` (len*4 + 1), zero#, zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), unD# $ v2 `U.unsafeIndex` (len*4 + 1), zero#, zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        --           | rest == 3 = let rem1 = packDoubleX4# (# unD# $ v1 `U.unsafeIndex` (len*4), unD# $ v1 `U.unsafeIndex` (len*4 + 1), unD# $ v1 `U.unsafeIndex` (len*4 + 2), zero# #)
+        --                             rem2 = packDoubleX4# (# unD# $ v2 `U.unsafeIndex` (len*4), unD# $ v2 `U.unsafeIndex` (len*4 + 1), unD# $ v2 `U.unsafeIndex` (len*4 + 2), zero# #)
+        --                         in timesDoubleX4# rem1 rem2
+
+        remainder = U.sum $ U.zipWith (*) (U.drop rest v1) (U.drop rest v2)
+
+        -- total = plusDoubleX4# base remainder
+
 plusHorizontal :: DoubleX4# -> Double
 plusHorizontal v = D# (r1+##r2+##r3+##r4)
   where
-    (# r1,r2,r3,r4 #) = unpackDoubleX4# v
+    !(# r1,r2,r3,r4 #) = unpackDoubleX4# v
