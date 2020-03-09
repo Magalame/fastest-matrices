@@ -110,38 +110,84 @@ main = do
 
 
     W.mainWith (do 
-               W.func "DLA - multiplication" (MF.multiply aDLA) bDLA
-               W.func "DLA - qr factorization" A.qr aDLA
-               W.func "DLA - transpose" M.transpose aDLA
-               W.func "DLA - norm" MF.norm vDLA
-               W.func "DLA - row" (M.row  aDLA) 0
-               W.func "DLA - column" (M.column  aDLA) 0
-               W.func "DLA - identity" M.ident n
+               W.func "sum_vec"           sum_vec aDLA
+               W.func "sum_vec mul"      (sum_vec . MF.multiply bDLA) bDLA
+               W.func "sum_vec mul fuse" (sum_vec . multiplyFuse bDLA) bDLA
+               W.func "sum_vec mul row"  (sum_vec_row . multiplyFuse bDLA) bDLA
+               W.func "sum_vec fused "   (multiplyFused bDLA) bDLA
+               W.func "sum_vec fused2 "  (multiplyFused2 bDLA) bDLA
 
-               W.func "Hmatrix - multiplication" ((<>) aH) bH
-               W.func "Hmatrix - qr factorization" H.qr aH
-               W.func "Hmatrix - transpose" H.tr aH
-               W.func "Hmatrix - norm" H.norm_2 vH
-               W.func "Hmatrix - row" ((H.?) aH) [0]
-               W.func "Hmatrix - column" ((H.¿) aH) [0]
-               W.func "Hmatrix - identity" identH n
 
-               W.func "NumHask Array - multiplication" (NH.mmult aNH) bNH
-               W.func "NumHask Array - transpose" NH.transpose aNH
-               W.func "NumHask Array - norm" (sqrt . (NP.<.> vNH)) vNH
-               W.func "NumHask Array - row" (NH.row (NP.Proxy :: NP.Proxy 0)) aNH
-               W.func "NumHask Array - column" (NH.col (NP.Proxy :: NP.Proxy 0)) aNH
-
-               W.func "Massiv - multiplication" ((MA.|*|) aMA) bMA
-               W.func "Massiv - multiplication (Par)" ((MA.|*|) (MA.setComp MA.Par aMA)) bMA
-               W.func "Massiv - norm" (sqrt . MA.foldlS (+) 0 . MA.zipWith (*) vMA) vMA
-               W.func "Massiv - transpose" (MA.computeAs MA.P . MA.transpose) aMA
-               W.func "Massiv - row" (MA.computeAs MA.P . (MA.!>) aMA) 0
-               W.func "Massiv - column" (MA.computeAs MA.P . (MA.<!) aMA) 0
-
-               W.func "matrix - multiplication" (DMX.multStrassenMixed aDMX) bDMX
-               W.func "matrix - transpose" DMX.transpose aDMX
-               W.func "matrix - row" (DMX.getRow 1) aDMX
-               W.func "matrix - column" (DMX.getCol 1) aDMX
-               W.func "matrix - identity" identDMX n
                )
+
+    print $ (sum_vec_row . multiplyFuse bDLA) bDLA
+    print $ (multiplyFused bDLA) bDLA
+    print $ (multiplyFused2 bDLA) bDLA
+
+    print $ (multiplyFused2 bDLA) bDLA
+
+row :: M.Matrix -> Int -> Vector Double
+row m i = U.slice (c*i) c v
+    where c = M.cols m
+          v = M._vector m
+{-# INLINE [1] row #-}
+
+column :: M.Matrix -> Int -> Vector Double
+column m j= U.generate r (\i -> v `U.unsafeIndex` (j + i * c))
+        where r = M.rows m
+              c = M.cols m
+              v = M._vector m
+{-# INLINE column #-}
+
+column2 :: M.Matrix -> Int -> Vector Double
+column2 m j = U.generate (M.rows m) (\i -> (M._vector m) `U.unsafeIndex` (j + i * (M.cols m)))
+{-# INLINE column2 #-}
+
+sum_vec_row :: M.Matrix -> Double
+sum_vec_row a = (U.sum . flip row 0) a
+{-# INLINE sum_vec_row #-}
+
+sum_vec :: M.Matrix -> Double
+sum_vec a = (U.sum . flip column2 0) a
+{-# INLINE sum_vec #-}
+
+sum_vec2 :: M.Matrix -> Double
+sum_vec2 a = (U.sum . flip column 0) a
+{-# INLINE sum_vec2 #-}
+
+multiplyFuse :: M.Matrix -> M.Matrix -> M.Matrix
+multiplyFuse m1 m2 = M.Matrix r1 c2 $ U.generate (r1*c2) go
+  where
+    r1 = M.rows m1
+    c2 = M.cols m2
+    go t = U.sum $ U.zipWith (*) (row m1 i) (M.column m2 j)
+      where (i,j) = t `quotRem` c2
+{-# INLINE multiplyFuse #-}
+
+multiplyFused m1 m2 = U.sum $ U.slice 0 n (U.generate (r1*c2) go)
+  where
+    r1 = M.rows m1
+    c2 = M.cols m2
+    go t = U.sum $ U.zipWith (*) (row m1 i) (M.column m2 j)
+      where (i,j) = t `quotRem` c2
+
+-- multiplyFused m1 m2 = U.sum $ U.slice 0 n $ U.generate (r1*c2) go
+--   where
+--     r1 = M.rows m1
+--     c2 = M.cols m2
+--     go t = U.sum $ U.zipWith (*) (M.row m1 i) (M.column m2 j)
+--       where (i,j) = t `quotRem` c2
+
+      
+
+multiplyFused2 m1 m2 = U.sum $ row (M.Matrix n n $ U.generate (r1*c2) go) 0
+  where
+    r1 = M.rows m1
+    c2 = M.cols m2
+    go t = U.sum $ U.zipWith (*) (row m1 i) (M.column m2 j)
+      where (i,j) = t `quotRem` c2
+
+{-# RULES
+      "row/fuse"    forall c v r i.  row (M.Matrix r c v) i = U.slice (c*i) c v
+  #-}
+
